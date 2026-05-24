@@ -86,4 +86,4 @@ Current status:
 - MVP-0 completed
 The current kanban of the project is shown below.
 
-![[kanban.png]]
+![kanban](img/kanban.png)
