@@ -1,34 +1,29 @@
+#include "logging/CrashLogger.h"
 #include "platform/WinEnginePaths.h"
-#include "profile/ProfileManager.h"
-#include "services/AiService.h"
+#include "ui/MainWindow.h"
 
 #include <QApplication>
-#include <QMainWindow>
-#include <QWebEnginePage>
-#include <QWebEngineView>
 
 int main(int argc, char *argv[])
 {
     if (!WinEnginePaths::setupDllSearchPath())
         return 1;
 
+    CrashLogger::instance().install(
+        QStringLiteral(SHISHIGA_APP_VERSION));
+
     QApplication app(argc, argv);
 
-    QMainWindow window;
-    window.setWindowTitle(QStringLiteral("ShiShiga Workspace"));
-
-    QWebEngineProfile *profile = ProfileManager::instance().profileFor(AiService::ChatGpt);
-    if (profile == nullptr)
-        return 1;
-
-    auto *page = new QWebEnginePage(profile, &window);
-    auto *view = new QWebEngineView(&window);
-    view->setPage(page);
-    view->load(AiService::urlFor(AiService::ChatGpt));
-
-    window.setCentralWidget(view);
-    window.resize(1400, 900);
+    MainWindow window;
     window.show();
 
-    return app.exec();
+    try {
+        return app.exec();
+    } catch (const std::exception &exception) {
+        CrashLogger::instance().logException(exception);
+        return 1;
+    } catch (...) {
+        CrashLogger::instance().logUnknownException();
+        return 1;
+    }
 }

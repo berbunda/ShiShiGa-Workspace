@@ -81,4 +81,5 @@ Testing/
 .idea/
 .vs/
 .engine/
+crashes/
 *.autosave
