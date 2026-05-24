@@ -80,5 +80,5 @@ Testing/
 .vscode/
 .idea/
 .vs/
-.emgime/
+.engine/
 *.autosave
