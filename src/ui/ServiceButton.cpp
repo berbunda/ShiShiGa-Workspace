@@ -1,19 +1,20 @@
-#include "ServiceSidebarButton.h"
+#include "ServiceButton.h"
+
+#include "core/ServiceFaviconProvider.h"
 
 #include <QHBoxLayout>
 #include <QToolButton>
 
 namespace {
 
-constexpr int kServiceIconSize = 40;
 constexpr int kStateButtonSize = 24;
 
 } // namespace
 
-ServiceSidebarButton::ServiceSidebarButton(const QString &serviceId,
-                                           const QString &displayName,
-                                           bool available,
-                                           QWidget *parent)
+ServiceButton::ServiceButton(const QString &serviceId,
+                             const QString &displayName,
+                             bool available,
+                             QWidget *parent)
     : QWidget(parent)
     , m_serviceId(serviceId)
     , m_displayName(displayName)
@@ -25,11 +26,10 @@ ServiceSidebarButton::ServiceSidebarButton(const QString &serviceId,
 
     m_serviceButton = new QToolButton(this);
     m_serviceButton->setToolTip(displayName);
-    m_serviceButton->setIconSize(QSize(kServiceIconSize, kServiceIconSize));
-    m_serviceButton->setFixedSize(kServiceIconSize + 8, kServiceIconSize + 8);
+    m_serviceButton->setIconSize(QSize(kIconLogicalSize, kIconLogicalSize));
+    m_serviceButton->setFixedSize(kIconLogicalSize + 8, kIconLogicalSize + 8);
     m_serviceButton->setAutoRaise(true);
     m_serviceButton->setEnabled(available);
-    m_serviceButton->setText(displayName.left(1));
     m_serviceButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
     m_stateButton = new QToolButton(this);
@@ -40,6 +40,8 @@ ServiceSidebarButton::ServiceSidebarButton(const QString &serviceId,
     layout->addWidget(m_serviceButton);
     layout->addWidget(m_stateButton);
     layout->addStretch();
+
+    applyPlaceholderIcon();
 
     connect(m_serviceButton, &QToolButton::clicked, this, [this]() {
         emit activateRequested(m_serviceId);
@@ -56,12 +58,12 @@ ServiceSidebarButton::ServiceSidebarButton(const QString &serviceId,
     updateStateButton();
 }
 
-QString ServiceSidebarButton::serviceId() const
+QString ServiceButton::serviceId() const
 {
     return m_serviceId;
 }
 
-void ServiceSidebarButton::setActive(bool active)
+void ServiceButton::setActive(bool active)
 {
     if (m_active == active)
         return;
@@ -70,7 +72,7 @@ void ServiceSidebarButton::setActive(bool active)
     updateStyles();
 }
 
-void ServiceSidebarButton::setServiceState(ServiceState state)
+void ServiceButton::setServiceState(ServiceState state)
 {
     if (m_state == state)
         return;
@@ -80,16 +82,26 @@ void ServiceSidebarButton::setServiceState(ServiceState state)
     updateStyles();
 }
 
-void ServiceSidebarButton::setServiceIcon(const QIcon &icon)
+void ServiceButton::setServiceIcon(const QIcon &icon)
 {
     if (icon.isNull())
         return;
 
+    const qint64 cacheKey = icon.cacheKey();
+    if (cacheKey == m_iconCacheKey)
+        return;
+
+    m_iconCacheKey = cacheKey;
     m_serviceButton->setIcon(icon);
-    m_serviceButton->setText({});
 }
 
-void ServiceSidebarButton::updateStateButton()
+void ServiceButton::applyPlaceholderIcon()
+{
+    m_iconCacheKey = 0;
+    m_serviceButton->setIcon(ServiceFaviconProvider::placeholderIcon(m_displayName, kIconLogicalSize));
+}
+
+void ServiceButton::updateStateButton()
 {
     const bool showStateButton = m_available
         && (m_state == ServiceState::Loaded || m_state == ServiceState::Unloaded);
@@ -104,7 +116,7 @@ void ServiceSidebarButton::updateStateButton()
     }
 }
 
-void ServiceSidebarButton::updateStyles()
+void ServiceButton::updateStyles()
 {
     QString serviceStyle = QStringLiteral(
         "QToolButton { border-radius: 10px; padding: 4px; }"

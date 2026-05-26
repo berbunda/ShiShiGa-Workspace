@@ -83,3 +83,6 @@ Testing/
 .engine/
 crashes/
 *.autosave
+
+#rules
+rules.md

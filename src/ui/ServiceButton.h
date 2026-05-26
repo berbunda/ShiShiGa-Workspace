@@ -5,15 +5,17 @@
 #include <QIcon>
 #include <QWidget>
 
-class ServiceSidebarButton : public QWidget
+class ServiceButton : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit ServiceSidebarButton(const QString &serviceId,
-                                  const QString &displayName,
-                                  bool available,
-                                  QWidget *parent = nullptr);
+    static constexpr int kIconLogicalSize = 40;
+
+    explicit ServiceButton(const QString &serviceId,
+                           const QString &displayName,
+                           bool available,
+                           QWidget *parent = nullptr);
 
     QString serviceId() const;
     void setActive(bool active);
@@ -28,12 +30,14 @@ signals:
 private:
     void updateStateButton();
     void updateStyles();
+    void applyPlaceholderIcon();
 
     QString m_serviceId;
     QString m_displayName;
     bool m_available = false;
     bool m_active = false;
     ServiceState m_state = ServiceState::Closed;
+    qint64 m_iconCacheKey = 0;
 
     class QToolButton *m_serviceButton = nullptr;
     class QToolButton *m_stateButton = nullptr;

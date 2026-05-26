@@ -11,7 +11,6 @@ struct ServiceDefinition
     QString id;
     QString displayName;
     QUrl defaultUrl;
-    QUrl faviconUrl;
     bool available = false;
 };
 

@@ -1,3 +1,4 @@
+#include "core/SettingsManager.h"
 #include "logging/CrashLogger.h"
 #include "platform/WinEnginePaths.h"
 #include "ui/MainWindow.h"
@@ -14,8 +15,15 @@ int main(int argc, char *argv[])
 
     QApplication app(argc, argv);
 
-    MainWindow window;
+    SettingsManager &settings = SettingsManager::instance();
+    settings.load();
+
+    MainWindow window(settings);
     window.show();
+
+    QObject::connect(&app, &QApplication::aboutToQuit, [&settings]() {
+        settings.save();
+    });
 
     try {
         return app.exec();

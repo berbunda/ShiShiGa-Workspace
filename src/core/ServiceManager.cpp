@@ -1,11 +1,11 @@
 #include "ServiceManager.h"
 
+#include "core/ServiceFaviconProvider.h"
+#include "core/SettingsManager.h"
 #include "profile/ProfileManager.h"
 
 #include <QDateTime>
 #include <QLabel>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 #include <QStackedWidget>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -30,6 +30,7 @@ QWidget *createPlaceholderWidget(QWidget *parent)
 ServiceManager::ServiceManager(QStackedWidget *stackWidget, QObject *parent)
     : QObject(parent)
     , m_stack(stackWidget)
+    , m_faviconProvider(new ServiceFaviconProvider(this))
 {
     m_placeholder = createPlaceholderWidget(m_stack);
     m_stack->addWidget(m_placeholder);
@@ -42,6 +43,9 @@ ServiceManager::ServiceManager(QStackedWidget *stackWidget, QObject *parent)
         entry.lastUrl = definition.defaultUrl;
         m_services.insert(definition.id, std::move(entry));
     }
+
+    connect(m_faviconProvider, &ServiceFaviconProvider::faviconChanged, this,
+            &ServiceManager::serviceIconChanged);
 }
 
 QList<ServiceDefinition> ServiceManager::services() const
@@ -70,6 +74,11 @@ QWebEngineView *ServiceManager::viewFor(const QString &serviceId) const
     return entry != nullptr ? entry->view : nullptr;
 }
 
+QIcon ServiceManager::iconForService(const QString &serviceId) const
+{
+    return m_faviconProvider->cachedIcon(serviceId);
+}
+
 void ServiceManager::activateService(const QString &serviceId)
 {
     ServiceEntry *entry = entryFor(serviceId);
@@ -88,6 +97,9 @@ void ServiceManager::activateService(const QString &serviceId)
     m_stack->setCurrentWidget(entry->view);
 
     updateInactivityTimers();
+
+    if (m_faviconProvider->hasCachedIcon(serviceId))
+        emit serviceIconChanged(serviceId, m_faviconProvider->cachedIcon(serviceId));
 
     emit activeServiceChanged(serviceId);
     emit serviceStateChanged(serviceId, ServiceState::Loaded);
@@ -137,16 +149,6 @@ void ServiceManager::closeService(const QString &serviceId)
     emit serviceStateChanged(serviceId, ServiceState::Closed);
 }
 
-void ServiceManager::setIconForService(const QString &serviceId, const QIcon &icon)
-{
-    ServiceEntry *entry = entryFor(serviceId);
-    if (entry == nullptr || icon.isNull())
-        return;
-
-    entry->icon = icon;
-    emit serviceIconChanged(serviceId, icon);
-}
-
 ServiceManager::ServiceEntry *ServiceManager::entryFor(const QString &serviceId)
 {
     auto it = m_services.find(serviceId);
@@ -180,18 +182,18 @@ void ServiceManager::createView(ServiceEntry &entry)
     });
 
     m_stack->addWidget(entry.view);
+    m_faviconProvider->bindPage(serviceId, entry.page);
 
     const QUrl targetUrl = entry.lastUrl.isValid() ? entry.lastUrl : entry.definition.defaultUrl;
     entry.view->load(targetUrl);
-
-    if (entry.icon.isNull())
-        requestFavicon(entry);
 }
 
 void ServiceManager::destroyView(ServiceEntry &entry)
 {
     if (entry.view == nullptr)
         return;
+
+    m_faviconProvider->unbindPage(entry.definition.id);
 
     m_stack->removeWidget(entry.view);
     entry.view->deleteLater();
@@ -221,7 +223,7 @@ void ServiceManager::startInactivityTimer(ServiceEntry &entry)
     if (entry.inactivityTimer == nullptr) {
         entry.inactivityTimer = new QTimer(this);
         entry.inactivityTimer->setSingleShot(true);
-        entry.inactivityTimer->setInterval(kInactivityTimeoutMs);
+        entry.inactivityTimer->setInterval(SettingsManager::instance().autoUnloadTimeoutMs());
         connect(entry.inactivityTimer, &QTimer::timeout, this, [this, serviceId = entry.definition.id]() {
             if (m_activeServiceId == serviceId)
                 return;
@@ -239,20 +241,17 @@ void ServiceManager::stopInactivityTimer(ServiceEntry &entry)
         entry.inactivityTimer->stop();
 }
 
-void ServiceManager::requestFavicon(ServiceEntry &entry)
+void ServiceManager::refreshInactivityTimeouts()
 {
-    if (!entry.definition.faviconUrl.isValid())
-        return;
+    const int timeoutMs = SettingsManager::instance().autoUnloadTimeoutMs();
 
-    auto *network = new QNetworkAccessManager(this);
-    QNetworkReply *reply = network->get(QNetworkRequest(entry.definition.faviconUrl));
-    connect(reply, &QNetworkReply::finished, this, [this, serviceId = entry.definition.id, reply, network]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            QPixmap pixmap;
-            if (pixmap.loadFromData(reply->readAll()))
-                setIconForService(serviceId, QIcon(pixmap));
-        }
-        reply->deleteLater();
-        network->deleteLater();
-    });
+    for (auto it = m_services.begin(); it != m_services.end(); ++it) {
+        ServiceEntry &entry = it.value();
+        if (entry.inactivityTimer == nullptr)
+            continue;
+
+        entry.inactivityTimer->setInterval(timeoutMs);
+        if (entry.inactivityTimer->isActive())
+            entry.inactivityTimer->start();
+    }
 }
