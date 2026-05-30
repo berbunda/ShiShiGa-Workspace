@@ -1,5 +1,7 @@
 #include "SettingsManager.h"
 
+#include "UserAgentSettings.h"
+
 #include <QMutexLocker>
 #include <QSettings>
 
@@ -20,6 +22,7 @@ constexpr char kApplicationName[] = "ShiShiga Workspace";
 constexpr char kGroupUi[] = "UI";
 constexpr char kGroupBehavior[] = "Behavior";
 constexpr char kGroupWindow[] = "Window";
+constexpr char kGroupWebEngine[] = "WebEngine";
 
 constexpr char kKeyFontSize[] = "FontSize";
 constexpr char kKeySidebarWidth[] = "SidebarWidth";
@@ -30,6 +33,10 @@ constexpr char kKeyMainWindowX[] = "MainWindowX";
 constexpr char kKeyMainWindowY[] = "MainWindowY";
 constexpr char kKeyMainWindowMaximized[] = "MainWindowMaximized";
 constexpr char kKeyRememberMainWindowGeometry[] = "RememberMainWindowGeometry";
+constexpr char kKeyUserAgentMode[] = "UserAgentMode";
+constexpr char kKeyUserAgentPreset[] = "UserAgentPreset";
+constexpr char kKeyCustomUserAgent[] = "CustomUserAgent";
+constexpr char kKeyUserAgentCustomWarningAcknowledged[] = "CustomModeWarningAcknowledged";
 
 QSettings makeSettings()
 {
@@ -170,6 +177,60 @@ void SettingsManager::setRememberMainWindowGeometry(bool remember)
     m_rememberMainWindowGeometry = remember;
 }
 
+UserAgentMode SettingsManager::userAgentMode() const
+{
+    QMutexLocker locker(&m_mutex);
+    return m_userAgentMode;
+}
+
+void SettingsManager::setUserAgentMode(UserAgentMode mode)
+{
+    QMutexLocker locker(&m_mutex);
+    m_userAgentMode = mode;
+}
+
+QString SettingsManager::userAgentPresetId() const
+{
+    QMutexLocker locker(&m_mutex);
+    return m_userAgentPresetId;
+}
+
+void SettingsManager::setUserAgentPresetId(const QString &presetId)
+{
+    QMutexLocker locker(&m_mutex);
+    m_userAgentPresetId = presetId.trimmed().toLower();
+}
+
+QString SettingsManager::customUserAgent() const
+{
+    QMutexLocker locker(&m_mutex);
+    return m_customUserAgent;
+}
+
+void SettingsManager::setCustomUserAgent(const QString &userAgent)
+{
+    QMutexLocker locker(&m_mutex);
+    m_customUserAgent = userAgent;
+}
+
+bool SettingsManager::userAgentCustomWarningAcknowledged() const
+{
+    QMutexLocker locker(&m_mutex);
+    return m_userAgentCustomWarningAcknowledged;
+}
+
+void SettingsManager::setUserAgentCustomWarningAcknowledged(bool acknowledged)
+{
+    QMutexLocker locker(&m_mutex);
+    m_userAgentCustomWarningAcknowledged = acknowledged;
+}
+
+QString SettingsManager::resolvedUserAgent() const
+{
+    QMutexLocker locker(&m_mutex);
+    return UserAgentSettings::resolve(m_userAgentMode, m_userAgentPresetId, m_customUserAgent);
+}
+
 void SettingsManager::applyDefaults()
 {
     m_fontSize = kDefaultFontSize;
@@ -179,6 +240,10 @@ void SettingsManager::applyDefaults()
     m_mainWindowPosition = QPoint(kUnsetWindowCoordinate, kUnsetWindowCoordinate);
     m_mainWindowMaximized = false;
     m_rememberMainWindowGeometry = SettingsManager::kDefaultRememberMainWindowGeometry;
+    m_userAgentMode = UserAgentMode::Default;
+    m_userAgentPresetId = QString::fromLatin1(UserAgentSettings::kDefaultPresetId);
+    m_customUserAgent.clear();
+    m_userAgentCustomWarningAcknowledged = false;
 }
 
 void SettingsManager::readFromSettings()
@@ -212,6 +277,20 @@ void SettingsManager::readFromSettings()
         .toBool();
     settings.endGroup();
 
+    settings.beginGroup(QString::fromLatin1(kGroupWebEngine));
+    m_userAgentMode = UserAgentSettings::modeFromString(
+        settings.value(QString::fromLatin1(kKeyUserAgentMode), UserAgentSettings::modeToString(UserAgentMode::Default)).toString());
+    m_userAgentPresetId = settings
+        .value(QString::fromLatin1(kKeyUserAgentPreset), QString::fromLatin1(UserAgentSettings::kDefaultPresetId))
+        .toString()
+        .trimmed()
+        .toLower();
+    m_customUserAgent = settings.value(QString::fromLatin1(kKeyCustomUserAgent)).toString();
+    m_userAgentCustomWarningAcknowledged = settings
+        .value(QString::fromLatin1(kKeyUserAgentCustomWarningAcknowledged), false)
+        .toBool();
+    settings.endGroup();
+
     if (m_fontSize <= 0)
         m_fontSize = kDefaultFontSize;
     if (m_sidebarWidth <= 0)
@@ -220,6 +299,10 @@ void SettingsManager::readFromSettings()
         m_autoUnloadTimeoutMinutes = kDefaultAutoUnloadTimeoutMinutes;
     if (!m_mainWindowSize.isValid() || m_mainWindowSize.width() <= 0 || m_mainWindowSize.height() <= 0)
         m_mainWindowSize = QSize(kDefaultMainWindowWidth, kDefaultMainWindowHeight);
+    if (m_userAgentPresetId.isEmpty())
+        m_userAgentPresetId = QString::fromLatin1(UserAgentSettings::kDefaultPresetId);
+    if (UserAgentSettings::presetById(m_userAgentPresetId) == nullptr)
+        m_userAgentPresetId = QString::fromLatin1(UserAgentSettings::kDefaultPresetId);
 }
 
 void SettingsManager::writeToSettings()
@@ -242,6 +325,14 @@ void SettingsManager::writeToSettings()
     settings.setValue(QString::fromLatin1(kKeyMainWindowY), m_mainWindowPosition.y());
     settings.setValue(QString::fromLatin1(kKeyMainWindowMaximized), m_mainWindowMaximized);
     settings.setValue(QString::fromLatin1(kKeyRememberMainWindowGeometry), m_rememberMainWindowGeometry);
+    settings.endGroup();
+
+    settings.beginGroup(QString::fromLatin1(kGroupWebEngine));
+    settings.setValue(QString::fromLatin1(kKeyUserAgentMode), UserAgentSettings::modeToString(m_userAgentMode));
+    settings.setValue(QString::fromLatin1(kKeyUserAgentPreset), m_userAgentPresetId);
+    settings.setValue(QString::fromLatin1(kKeyCustomUserAgent), m_customUserAgent);
+    settings.setValue(QString::fromLatin1(kKeyUserAgentCustomWarningAcknowledged),
+                      m_userAgentCustomWarningAcknowledged);
     settings.endGroup();
 
     settings.sync();

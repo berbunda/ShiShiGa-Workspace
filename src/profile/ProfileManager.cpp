@@ -1,6 +1,7 @@
 #include "ProfileManager.h"
 
 #include "ProfileSecurity.h"
+#include "core/UserAgentSettings.h"
 #include "services/ServiceRegistry.h"
 
 #include <QDir>
@@ -208,6 +209,7 @@ QWebEngineProfile *ProfileManager::createProfile(const QString &serviceName)
     profile->setHttpCacheType(QWebEngineProfile::HttpCacheType::DiskHttpCache);
     profile->setPersistentCookiesPolicy(QWebEngineProfile::ForcePersistentCookies);
     profile->settings()->setAttribute(QWebEngineSettings::JavascriptCanAccessClipboard, true);
+    UserAgentSettings::applyToProfile(profile);
 
     qCInfo(profileLog) << "Created persistent profile for" << serviceName
                        << "storage:" << storagePath

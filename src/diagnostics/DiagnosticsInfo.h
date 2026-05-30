@@ -32,6 +32,7 @@ struct ActiveServiceDiagnostics
     QString serviceState;
     QString profileName;
     QString profilePath;
+    QString userAgent;
 };
 
 struct MemoryDiagnostics

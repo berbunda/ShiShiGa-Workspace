@@ -1,6 +1,7 @@
 #include "SettingsWindow.h"
 
 #include "ProfileManagerWidget.h"
+#include "UserAgentSettingsWidget.h"
 #include "core/SettingsManager.h"
 
 #include <QAbstractButton>
@@ -33,6 +34,8 @@ SettingsWindow::SettingsWindow(SettingsManager &settings,
     m_tabs->addTab(buildGeneralTab(), tr("General"));
     m_profileManager = new ProfileManagerWidget(m_serviceManager, this);
     m_tabs->addTab(m_profileManager, tr("Profile Manager"));
+    m_userAgentSettings = new UserAgentSettingsWidget(m_settings, this);
+    m_tabs->addTab(m_userAgentSettings, tr("WebEngine"));
 
     rootLayout->addWidget(m_tabs, 1);
 
@@ -110,6 +113,9 @@ void SettingsWindow::loadFromManager()
     m_fontSizeSpin->setValue(m_settings.fontSize());
     m_autoUnloadTimeoutSpin->setValue(m_settings.autoUnloadTimeoutMinutes());
     m_rememberGeometryCheck->setChecked(m_settings.rememberMainWindowGeometry());
+
+    if (m_userAgentSettings != nullptr)
+        m_userAgentSettings->loadFromManager();
 }
 
 void SettingsWindow::loadDefaultValues()
@@ -117,6 +123,9 @@ void SettingsWindow::loadDefaultValues()
     m_fontSizeSpin->setValue(SettingsManager::kDefaultFontSize);
     m_autoUnloadTimeoutSpin->setValue(SettingsManager::kDefaultAutoUnloadTimeoutMinutes);
     m_rememberGeometryCheck->setChecked(SettingsManager::kDefaultRememberMainWindowGeometry);
+
+    if (m_userAgentSettings != nullptr)
+        m_userAgentSettings->loadDefaultValues();
 }
 
 bool SettingsWindow::validateInputs() const
@@ -141,12 +150,18 @@ bool SettingsWindow::validateInputs() const
         return false;
     }
 
+    if (m_userAgentSettings != nullptr && !m_userAgentSettings->validateInputs())
+        return false;
+
     return true;
 }
 
 bool SettingsWindow::applyToManager()
 {
     if (!validateInputs())
+        return false;
+
+    if (m_userAgentSettings != nullptr && !m_userAgentSettings->applyToManager())
         return false;
 
     m_settings.setFontSize(m_fontSizeSpin->value());

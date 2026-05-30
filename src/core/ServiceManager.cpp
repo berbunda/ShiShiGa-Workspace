@@ -2,6 +2,7 @@
 
 #include "core/ServiceFaviconProvider.h"
 #include "core/SettingsManager.h"
+#include "core/UserAgentSettings.h"
 #include "diagnostics/DiagnosticsWebEnginePage.h"
 #include "diagnostics/WebEngineConsoleLog.h"
 #include "logging/CrashLogger.h"
@@ -13,6 +14,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWebEnginePage>
+#include <QWebEngineProfile>
 #include <QWebEngineView>
 
 namespace {
@@ -123,6 +125,9 @@ void ServiceManager::reloadActivePage()
     ServiceEntry *entry = entryFor(m_activeServiceId);
     if (entry == nullptr || entry->view == nullptr)
         return;
+
+    if (QWebEngineProfile *profile = entry->page != nullptr ? entry->page->profile() : nullptr; profile != nullptr)
+        UserAgentSettings::applyToProfile(profile);
 
     entry->documentLoadStatus = QStringLiteral("Loading");
     entry->view->reload();
@@ -255,6 +260,8 @@ void ServiceManager::createView(ServiceEntry &entry)
     QWebEngineProfile *profile = ProfileManager::instance().profileFor(profileId);
     if (profile == nullptr)
         return;
+
+    UserAgentSettings::applyToProfile(profile);
 
     const QString serviceId = entry.catalog.id;
     entry.page = new DiagnosticsWebEnginePage(profile, m_stack);

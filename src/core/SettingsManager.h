@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UserAgentSettings.h"
+
 #include <QMutex>
 #include <QPoint>
 #include <QSize>
@@ -47,6 +49,20 @@ public:
     bool rememberMainWindowGeometry() const;
     void setRememberMainWindowGeometry(bool remember);
 
+    UserAgentMode userAgentMode() const;
+    void setUserAgentMode(UserAgentMode mode);
+
+    QString userAgentPresetId() const;
+    void setUserAgentPresetId(const QString &presetId);
+
+    QString customUserAgent() const;
+    void setCustomUserAgent(const QString &userAgent);
+
+    bool userAgentCustomWarningAcknowledged() const;
+    void setUserAgentCustomWarningAcknowledged(bool acknowledged);
+
+    QString resolvedUserAgent() const;
+
 private:
     SettingsManager();
 
@@ -64,4 +80,9 @@ private:
     QPoint m_mainWindowPosition;
     bool m_mainWindowMaximized = false;
     bool m_rememberMainWindowGeometry = true;
+
+    UserAgentMode m_userAgentMode = UserAgentMode::Default;
+    QString m_userAgentPresetId;
+    QString m_customUserAgent;
+    bool m_userAgentCustomWarningAcknowledged = false;
 };

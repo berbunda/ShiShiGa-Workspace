@@ -19,6 +19,8 @@ add_executable(ShiShiGa-Workspace WIN32
     src/core/ServiceManager.h
     src/core/SettingsManager.cpp
     src/core/SettingsManager.h
+    src/core/UserAgentSettings.cpp
+    src/core/UserAgentSettings.h
     src/diagnostics/DiagnosticsInfo.cpp
     src/diagnostics/DiagnosticsInfo.h
     src/diagnostics/DiagnosticsWebEnginePage.cpp
@@ -47,6 +49,8 @@ add_executable(ShiShiGa-Workspace WIN32
     src/ui/DevConsoleWindow.h
     src/ui/SettingsWindow.cpp
     src/ui/SettingsWindow.h
+    src/ui/UserAgentSettingsWidget.cpp
+    src/ui/UserAgentSettingsWidget.h
     src/ui/ProfileManagerWidget.cpp
     src/ui/ProfileManagerWidget.h
     src/ui/ServiceButton.cpp

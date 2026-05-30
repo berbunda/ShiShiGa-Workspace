@@ -10,6 +10,7 @@ class QTabWidget;
 class ProfileManagerWidget;
 class ServiceManager;
 class SettingsManager;
+class UserAgentSettingsWidget;
 
 class SettingsWindow : public QDialog
 {
@@ -43,6 +44,7 @@ private:
 
     QTabWidget *m_tabs = nullptr;
     ProfileManagerWidget *m_profileManager = nullptr;
+    UserAgentSettingsWidget *m_userAgentSettings = nullptr;
 
     QSpinBox *m_fontSizeSpin = nullptr;
     QSpinBox *m_autoUnloadTimeoutSpin = nullptr;

@@ -8,6 +8,8 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QSysInfo>
+#include <QWebEnginePage>
+#include <QWebEngineProfile>
 #include <QWebEngineView>
 
 #ifdef Q_OS_WIN
@@ -104,6 +106,14 @@ DebugDiagnosticsSnapshot DiagnosticsInfo::collect(const ServiceManager *serviceM
 
         if (QWebEngineView *view = serviceManager->viewFor(serviceId); view != nullptr) {
             snapshot.activeService.serviceUrl = view->url().toString();
+
+            if (QWebEnginePage *page = serviceManager->pageFor(serviceId); page != nullptr) {
+                if (QWebEngineProfile *profile = page->profile(); profile != nullptr) {
+                    snapshot.activeService.userAgent = profile->httpUserAgent().isEmpty()
+                        ? QStringLiteral("Default (Qt WebEngine)")
+                        : profile->httpUserAgent();
+                }
+            }
         } else if (catalog.defaultUrl.isValid()) {
             snapshot.activeService.serviceUrl = catalog.defaultUrl.toString();
         } else {
@@ -161,6 +171,9 @@ QString DiagnosticsInfo::formatDebugReport(const DebugDiagnosticsSnapshot &snaps
         appendLine(QStringLiteral("Service state"), snapshot.activeService.serviceState);
         appendLine(QStringLiteral("Profile name"), snapshot.activeService.profileName);
         appendLine(QStringLiteral("Profile path"), snapshot.activeService.profilePath);
+        appendLine(QStringLiteral("Current User-Agent"), snapshot.activeService.userAgent.isEmpty()
+            ? na()
+            : snapshot.activeService.userAgent);
     } else {
         appendLine(QStringLiteral("Status"), QStringLiteral("No active service"));
     }
