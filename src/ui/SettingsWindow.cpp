@@ -1,5 +1,6 @@
 #include "SettingsWindow.h"
 
+#include "ProfileManagerWidget.h"
 #include "core/SettingsManager.h"
 
 #include <QAbstractButton>
@@ -12,54 +13,28 @@
 #include <QPushButton>
 #include <QShowEvent>
 #include <QSpinBox>
+#include <QTabWidget>
 #include <QVBoxLayout>
 
-SettingsWindow::SettingsWindow(SettingsManager &settings, QWidget *parent)
+SettingsWindow::SettingsWindow(SettingsManager &settings,
+                               ServiceManager *serviceManager,
+                               QWidget *parent)
     : QDialog(parent)
     , m_settings(settings)
+    , m_serviceManager(serviceManager)
 {
     setWindowTitle(tr("Settings"));
     setModal(false);
-    resize(420, 320);
+    resize(760, 520);
 
-    setupUi();
-    loadFromManager();
-}
-
-void SettingsWindow::setupUi()
-{
     auto *rootLayout = new QVBoxLayout(this);
 
-    auto *appearanceGroup = new QGroupBox(tr("Appearance"), this);
-    auto *appearanceForm = new QFormLayout(appearanceGroup);
+    m_tabs = new QTabWidget(this);
+    m_tabs->addTab(buildGeneralTab(), tr("General"));
+    m_profileManager = new ProfileManagerWidget(m_serviceManager, this);
+    m_tabs->addTab(m_profileManager, tr("Profile Manager"));
 
-    m_fontSizeSpin = new QSpinBox(appearanceGroup);
-    m_fontSizeSpin->setRange(SettingsManager::kMinFontSize, SettingsManager::kMaxFontSize);
-    m_fontSizeSpin->setSuffix(tr(" pt"));
-    appearanceForm->addRow(tr("Font size:"), m_fontSizeSpin);
-
-    auto *behaviorGroup = new QGroupBox(tr("Behavior"), this);
-    auto *behaviorForm = new QFormLayout(behaviorGroup);
-
-    m_autoUnloadTimeoutSpin = new QSpinBox(behaviorGroup);
-    m_autoUnloadTimeoutSpin->setRange(SettingsManager::kMinAutoUnloadTimeoutMinutes,
-                                      SettingsManager::kMaxAutoUnloadTimeoutMinutes);
-    m_autoUnloadTimeoutSpin->setSuffix(tr(" min"));
-    behaviorForm->addRow(tr("Auto unload timeout:"), m_autoUnloadTimeoutSpin);
-
-    m_restoreSessionCheck = new QCheckBox(tr("Restore previous session on startup"), behaviorGroup);
-    behaviorForm->addRow(m_restoreSessionCheck);
-
-    auto *windowGroup = new QGroupBox(tr("Window"), this);
-    auto *windowForm = new QFormLayout(windowGroup);
-
-    m_rememberGeometryCheck = new QCheckBox(tr("Remember main window geometry"), windowGroup);
-    windowForm->addRow(m_rememberGeometryCheck);
-
-    rootLayout->addWidget(appearanceGroup);
-    rootLayout->addWidget(behaviorGroup);
-    rootLayout->addWidget(windowGroup);
-    rootLayout->addStretch();
+    rootLayout->addWidget(m_tabs, 1);
 
     auto *actionsLayout = new QHBoxLayout();
     auto *resetButton = new QPushButton(tr("Reset to defaults"), this);
@@ -90,13 +65,50 @@ void SettingsWindow::setupUi()
             break;
         }
     });
+
+    loadFromManager();
+}
+
+QWidget *SettingsWindow::buildGeneralTab()
+{
+    auto *generalTab = new QWidget(this);
+
+    auto *appearanceGroup = new QGroupBox(tr("Appearance"), generalTab);
+    auto *appearanceForm = new QFormLayout(appearanceGroup);
+
+    m_fontSizeSpin = new QSpinBox(appearanceGroup);
+    m_fontSizeSpin->setRange(SettingsManager::kMinFontSize, SettingsManager::kMaxFontSize);
+    m_fontSizeSpin->setSuffix(tr(" pt"));
+    appearanceForm->addRow(tr("Font size:"), m_fontSizeSpin);
+
+    auto *behaviorGroup = new QGroupBox(tr("Behavior"), generalTab);
+    auto *behaviorForm = new QFormLayout(behaviorGroup);
+
+    m_autoUnloadTimeoutSpin = new QSpinBox(behaviorGroup);
+    m_autoUnloadTimeoutSpin->setRange(SettingsManager::kMinAutoUnloadTimeoutMinutes,
+                                      SettingsManager::kMaxAutoUnloadTimeoutMinutes);
+    m_autoUnloadTimeoutSpin->setSuffix(tr(" min"));
+    behaviorForm->addRow(tr("Auto unload timeout:"), m_autoUnloadTimeoutSpin);
+
+    auto *windowGroup = new QGroupBox(tr("Window"), generalTab);
+    auto *windowForm = new QFormLayout(windowGroup);
+
+    m_rememberGeometryCheck = new QCheckBox(tr("Remember main window geometry"), windowGroup);
+    windowForm->addRow(m_rememberGeometryCheck);
+
+    auto *tabLayout = new QVBoxLayout(generalTab);
+    tabLayout->addWidget(appearanceGroup);
+    tabLayout->addWidget(behaviorGroup);
+    tabLayout->addWidget(windowGroup);
+    tabLayout->addStretch();
+
+    return generalTab;
 }
 
 void SettingsWindow::loadFromManager()
 {
     m_fontSizeSpin->setValue(m_settings.fontSize());
     m_autoUnloadTimeoutSpin->setValue(m_settings.autoUnloadTimeoutMinutes());
-    m_restoreSessionCheck->setChecked(m_settings.restorePreviousSession());
     m_rememberGeometryCheck->setChecked(m_settings.rememberMainWindowGeometry());
 }
 
@@ -104,7 +116,6 @@ void SettingsWindow::loadDefaultValues()
 {
     m_fontSizeSpin->setValue(SettingsManager::kDefaultFontSize);
     m_autoUnloadTimeoutSpin->setValue(SettingsManager::kDefaultAutoUnloadTimeoutMinutes);
-    m_restoreSessionCheck->setChecked(SettingsManager::kDefaultRestorePreviousSession);
     m_rememberGeometryCheck->setChecked(SettingsManager::kDefaultRememberMainWindowGeometry);
 }
 
@@ -140,7 +151,6 @@ bool SettingsWindow::applyToManager()
 
     m_settings.setFontSize(m_fontSizeSpin->value());
     m_settings.setAutoUnloadTimeoutMinutes(m_autoUnloadTimeoutSpin->value());
-    m_settings.setRestorePreviousSession(m_restoreSessionCheck->isChecked());
     m_settings.setRememberMainWindowGeometry(m_rememberGeometryCheck->isChecked());
     m_settings.save();
 
@@ -164,7 +174,7 @@ void SettingsWindow::onResetToDefaults()
     const QMessageBox::StandardButton answer = QMessageBox::question(
         this,
         tr("Reset to defaults"),
-        tr("Reset all settings on this page to their default values?"),
+        tr("Reset all settings on the General tab to their default values?"),
         QMessageBox::Yes | QMessageBox::No,
         QMessageBox::No);
 
@@ -178,4 +188,9 @@ void SettingsWindow::showEvent(QShowEvent *event)
 {
     QDialog::showEvent(event);
     loadFromManager();
+
+    if (m_profileManager != nullptr) {
+        m_profileManager->refreshProfileList();
+        m_profileManager->refreshRuntimeStates();
+    }
 }

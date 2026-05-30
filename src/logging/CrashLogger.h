@@ -23,6 +23,11 @@ public:
     void logUnknownException();
     void logTerminate();
     void logQtFatal(const QMessageLogContext &context, const QString &message);
+    void logOperationalError(const QString &category, const QString &message);
+
+    QString installedVersion() const;
+    QString applicationDirectoryPath() const;
+    QString crashesDirectoryPath() const;
 
 #ifdef Q_OS_WIN
     void logStructuredException(void *exceptionPointers);

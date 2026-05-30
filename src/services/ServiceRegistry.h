@@ -1,22 +1,26 @@
 #pragma once
 
-#include "services/AiService.h"
-
+#include <QIcon>
 #include <QList>
 #include <QString>
 #include <QUrl>
 
-struct ServiceDefinition
+struct ServiceCatalogEntry
 {
     QString id;
     QString displayName;
     QUrl defaultUrl;
-    bool available = false;
+    QString profileId;
+    QString faviconResourcePath;
+    bool launchable = false;
 };
 
 class ServiceRegistry
 {
 public:
-    static QList<ServiceDefinition> allServices();
-    static ServiceDefinition definitionFor(const QString &serviceId);
+    static QList<ServiceCatalogEntry> catalog();
+    static QList<ServiceCatalogEntry> launchableServices();
+    static ServiceCatalogEntry entryFor(const QString &serviceId);
+    static bool isLaunchable(const QString &serviceId);
+    static QIcon faviconFor(const ServiceCatalogEntry &entry, int logicalSize = 40);
 };

@@ -5,31 +5,37 @@
 #include <QHBoxLayout>
 #include <QToolButton>
 
-namespace {
+QSize ServiceButton::iconTouchTargetSize()
+{
+    return QSize(kIconLogicalSize + kIconPadding, kIconLogicalSize + kIconPadding);
+}
 
-constexpr int kStateButtonSize = 24;
-
-} // namespace
+QSize ServiceButton::rowSizeHint()
+{
+    const QSize iconTarget = iconTouchTargetSize();
+    const int rowHeight = qMax(iconTarget.height(), kStateButtonSize) + (kVerticalMargin * 2);
+    const int rowWidth = kHorizontalMargin + iconTarget.width() + kContentSpacing + kStateButtonSize
+        + kHorizontalMargin;
+    return QSize(rowWidth, rowHeight);
+}
 
 ServiceButton::ServiceButton(const QString &serviceId,
                              const QString &displayName,
-                             bool available,
                              QWidget *parent)
     : QWidget(parent)
     , m_serviceId(serviceId)
     , m_displayName(displayName)
-    , m_available(available)
 {
     auto *layout = new QHBoxLayout(this);
-    layout->setContentsMargins(8, 4, 8, 4);
-    layout->setSpacing(6);
+    layout->setContentsMargins(kHorizontalMargin, kVerticalMargin, kHorizontalMargin, kVerticalMargin);
+    layout->setSpacing(kContentSpacing);
 
+    const QSize iconTarget = iconTouchTargetSize();
     m_serviceButton = new QToolButton(this);
     m_serviceButton->setToolTip(displayName);
     m_serviceButton->setIconSize(QSize(kIconLogicalSize, kIconLogicalSize));
-    m_serviceButton->setFixedSize(kIconLogicalSize + 8, kIconLogicalSize + 8);
+    m_serviceButton->setFixedSize(iconTarget);
     m_serviceButton->setAutoRaise(true);
-    m_serviceButton->setEnabled(available);
     m_serviceButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
     m_stateButton = new QToolButton(this);
@@ -103,8 +109,7 @@ void ServiceButton::applyPlaceholderIcon()
 
 void ServiceButton::updateStateButton()
 {
-    const bool showStateButton = m_available
-        && (m_state == ServiceState::Loaded || m_state == ServiceState::Unloaded);
+    const bool showStateButton = m_state == ServiceState::Loaded || m_state == ServiceState::Unloaded;
     m_stateButton->setVisible(showStateButton);
 
     if (m_state == ServiceState::Loaded) {
@@ -119,14 +124,13 @@ void ServiceButton::updateStateButton()
 void ServiceButton::updateStyles()
 {
     QString serviceStyle = QStringLiteral(
-        "QToolButton { border-radius: 10px; padding: 4px; }"
-        "QToolButton:disabled { color: #666; }");
+        "QToolButton { border-radius: 10px; padding: 4px; }");
 
     if (m_active) {
         serviceStyle += QStringLiteral(
             "QToolButton { background: #2d6cdf; }"
             "QToolButton:hover { background: #3b79ea; }");
-    } else if (m_available) {
+    } else {
         serviceStyle += QStringLiteral(
             "QToolButton:hover { background: #333; }");
     }

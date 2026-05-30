@@ -3,6 +3,8 @@
 #include <QMainWindow>
 
 class QCloseEvent;
+class DebugConsoleWindow;
+class DevConsoleWindow;
 class ServiceManager;
 class ServiceSidebar;
 class SettingsManager;
@@ -20,6 +22,8 @@ protected:
 
 private slots:
     void openSettings();
+    void openDebugConsole();
+    void openDevConsole();
     void applyLiveSettings();
 
 private:
@@ -27,7 +31,6 @@ private:
     void persistWindowSettings();
     void setupUi();
     void setupMenu();
-    void openDefaultService();
     void applyApplicationFont();
 
     SettingsManager &m_settings;
@@ -36,4 +39,6 @@ private:
     ServiceManager *m_serviceManager = nullptr;
     ServiceSidebar *m_sidebar = nullptr;
     SettingsWindow *m_settingsWindow = nullptr;
+    DebugConsoleWindow *m_debugConsoleWindow = nullptr;
+    DevConsoleWindow *m_devConsoleWindow = nullptr;
 };

@@ -245,6 +245,21 @@ void CrashLogger::install(const QString &applicationVersion)
 #endif
 }
 
+QString CrashLogger::installedVersion() const
+{
+    return m_applicationVersion;
+}
+
+QString CrashLogger::applicationDirectoryPath() const
+{
+    return applicationDirectory();
+}
+
+QString CrashLogger::crashesDirectoryPath() const
+{
+    return crashesDirectory();
+}
+
 void CrashLogger::logQtMessage(QtMsgType type,
                                const QMessageLogContext &context,
                                const QString &message)
@@ -289,6 +304,15 @@ void CrashLogger::logTerminate()
 void CrashLogger::logQtFatal(const QMessageLogContext &context, const QString &message)
 {
     writeCrashReport(ErrorKind::QtFatal, message, &context);
+}
+
+void CrashLogger::logOperationalError(const QString &category, const QString &message)
+{
+    const QString line = QStringLiteral("[%1] [%2] %3\n")
+                             .arg(QDateTime::currentDateTime().toString(Qt::ISODateWithMs),
+                                  category,
+                                  message);
+    appendToFile(runtimeLogPath(), line);
 }
 
 #ifdef Q_OS_WIN

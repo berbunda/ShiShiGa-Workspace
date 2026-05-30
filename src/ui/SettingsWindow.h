@@ -6,6 +6,9 @@ class QCheckBox;
 class QDialogButtonBox;
 class QShowEvent;
 class QSpinBox;
+class QTabWidget;
+class ProfileManagerWidget;
+class ServiceManager;
 class SettingsManager;
 
 class SettingsWindow : public QDialog
@@ -13,7 +16,9 @@ class SettingsWindow : public QDialog
     Q_OBJECT
 
 public:
-    explicit SettingsWindow(SettingsManager &settings, QWidget *parent = nullptr);
+    explicit SettingsWindow(SettingsManager &settings,
+                            ServiceManager *serviceManager,
+                            QWidget *parent = nullptr);
 
 signals:
     void settingsApplied();
@@ -27,17 +32,20 @@ private slots:
     void onResetToDefaults();
 
 private:
-    void setupUi();
+    QWidget *buildGeneralTab();
     void loadFromManager();
     void loadDefaultValues();
     bool applyToManager();
     bool validateInputs() const;
 
     SettingsManager &m_settings;
+    ServiceManager *m_serviceManager = nullptr;
+
+    QTabWidget *m_tabs = nullptr;
+    ProfileManagerWidget *m_profileManager = nullptr;
 
     QSpinBox *m_fontSizeSpin = nullptr;
     QSpinBox *m_autoUnloadTimeoutSpin = nullptr;
-    QCheckBox *m_restoreSessionCheck = nullptr;
     QCheckBox *m_rememberGeometryCheck = nullptr;
     QDialogButtonBox *m_buttonBox = nullptr;
 };

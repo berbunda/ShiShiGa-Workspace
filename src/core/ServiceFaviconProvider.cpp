@@ -82,6 +82,11 @@ void ServiceFaviconProvider::unbindPage(const QString &serviceId)
     m_pages.remove(serviceId);
 }
 
+void ServiceFaviconProvider::clearCacheForService(const QString &serviceId)
+{
+    m_cache.remove(serviceId);
+}
+
 QIcon ServiceFaviconProvider::cachedIcon(const QString &serviceId) const
 {
     return m_cache.value(serviceId);

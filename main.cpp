@@ -4,16 +4,27 @@
 #include "ui/MainWindow.h"
 
 #include <QApplication>
+#include <QCoreApplication>
+#include <QString>
 
 int main(int argc, char *argv[])
 {
     if (!WinEnginePaths::setupDllSearchPath())
         return 1;
 
+    // Register the deployed plugin directory before QApplication is created,
+    // so Qt can locate the "windows" platform plugin regardless of how the
+    // runtime prefix is auto-detected. The path is derived from the running
+    // executable, so it stays portable after the archive is extracted.
+    const QString pluginsDirectory = WinEnginePaths::pluginsDirectory();
+    if (!pluginsDirectory.isEmpty())
+        QCoreApplication::addLibraryPath(pluginsDirectory);
+
     CrashLogger::instance().install(
         QStringLiteral(SHISHIGA_APP_VERSION));
 
     QApplication app(argc, argv);
+    QCoreApplication::setApplicationName(QStringLiteral("ShiShiga Workspace"));
 
     SettingsManager &settings = SettingsManager::instance();
     settings.load();

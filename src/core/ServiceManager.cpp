@@ -2,6 +2,9 @@
 
 #include "core/ServiceFaviconProvider.h"
 #include "core/SettingsManager.h"
+#include "diagnostics/DiagnosticsWebEnginePage.h"
+#include "diagnostics/WebEngineConsoleLog.h"
+#include "logging/CrashLogger.h"
 #include "profile/ProfileManager.h"
 
 #include <QDateTime>
@@ -14,15 +17,15 @@
 
 namespace {
 
-QWidget *createPlaceholderWidget(QWidget *parent)
+QWidget *createEmptyWorkspaceWidget(QWidget *parent)
 {
-    auto *placeholder = new QWidget(parent);
-    auto *layout = new QVBoxLayout(placeholder);
-    auto *label = new QLabel(QObject::tr("Select a service from the sidebar"), placeholder);
+    auto *widget = new QWidget(parent);
+    auto *layout = new QVBoxLayout(widget);
+    auto *label = new QLabel(QObject::tr("Click + to add a service"), widget);
     label->setAlignment(Qt::AlignCenter);
     label->setStyleSheet(QStringLiteral("color: #888; font-size: 16px;"));
     layout->addWidget(label);
-    return placeholder;
+    return widget;
 }
 
 } // namespace
@@ -31,30 +34,28 @@ ServiceManager::ServiceManager(QStackedWidget *stackWidget, QObject *parent)
     : QObject(parent)
     , m_stack(stackWidget)
     , m_faviconProvider(new ServiceFaviconProvider(this))
+    , m_consoleLog(new WebEngineConsoleLog(this))
 {
-    m_placeholder = createPlaceholderWidget(m_stack);
-    m_stack->addWidget(m_placeholder);
-    m_stack->setCurrentWidget(m_placeholder);
-
-    for (const ServiceDefinition &definition : ServiceRegistry::allServices()) {
-        ServiceEntry entry;
-        entry.definition = definition;
-        entry.state = ServiceState::Closed;
-        entry.lastUrl = definition.defaultUrl;
-        m_services.insert(definition.id, std::move(entry));
-    }
+    m_emptyWorkspace = createEmptyWorkspaceWidget(m_stack);
+    m_stack->addWidget(m_emptyWorkspace);
+    m_stack->setCurrentWidget(m_emptyWorkspace);
 
     connect(m_faviconProvider, &ServiceFaviconProvider::faviconChanged, this,
             &ServiceManager::serviceIconChanged);
 }
 
-QList<ServiceDefinition> ServiceManager::services() const
+QList<ServiceCatalogEntry> ServiceManager::openServices() const
 {
-    QList<ServiceDefinition> definitions;
-    definitions.reserve(m_services.size());
+    QList<ServiceCatalogEntry> services;
+    services.reserve(m_services.size());
     for (const ServiceEntry &entry : m_services)
-        definitions.append(entry.definition);
-    return definitions;
+        services.append(entry.catalog);
+    return services;
+}
+
+bool ServiceManager::hasOpenService(const QString &serviceId) const
+{
+    return m_services.contains(serviceId);
 }
 
 ServiceState ServiceManager::state(const QString &serviceId) const
@@ -74,18 +75,105 @@ QWebEngineView *ServiceManager::viewFor(const QString &serviceId) const
     return entry != nullptr ? entry->view : nullptr;
 }
 
+QWebEnginePage *ServiceManager::pageFor(const QString &serviceId) const
+{
+    const ServiceEntry *entry = entryFor(serviceId);
+    return entry != nullptr ? entry->page : nullptr;
+}
+
+int ServiceManager::loadedServiceCount() const
+{
+    int count = 0;
+    for (auto it = m_services.constBegin(); it != m_services.constEnd(); ++it) {
+        if (it->state == ServiceState::Loaded)
+            ++count;
+    }
+    return count;
+}
+
+int ServiceManager::unloadedServiceCount() const
+{
+    int count = 0;
+    for (auto it = m_services.constBegin(); it != m_services.constEnd(); ++it) {
+        if (it->state == ServiceState::Unloaded)
+            ++count;
+    }
+    return count;
+}
+
+QString ServiceManager::activeDocumentLoadStatusLabel() const
+{
+    if (m_activeServiceId.isEmpty())
+        return QStringLiteral("N/A");
+
+    const ServiceEntry *entry = entryFor(m_activeServiceId);
+    return entry != nullptr ? entry->documentLoadStatus : QStringLiteral("N/A");
+}
+
+WebEngineConsoleLog *ServiceManager::webEngineConsoleLog() const
+{
+    return m_consoleLog;
+}
+
+void ServiceManager::reloadActivePage()
+{
+    if (m_activeServiceId.isEmpty())
+        return;
+
+    ServiceEntry *entry = entryFor(m_activeServiceId);
+    if (entry == nullptr || entry->view == nullptr)
+        return;
+
+    entry->documentLoadStatus = QStringLiteral("Loading");
+    entry->view->reload();
+}
+
 QIcon ServiceManager::iconForService(const QString &serviceId) const
 {
-    return m_faviconProvider->cachedIcon(serviceId);
+    const ServiceEntry *entry = entryFor(serviceId);
+    if (entry == nullptr)
+        return {};
+
+    if (m_faviconProvider->hasCachedIcon(serviceId))
+        return m_faviconProvider->cachedIcon(serviceId);
+
+    return ServiceRegistry::faviconFor(entry->catalog);
+}
+
+bool ServiceManager::openService(const QString &catalogServiceId)
+{
+    if (!ServiceRegistry::isLaunchable(catalogServiceId))
+        return false;
+
+    if (hasOpenService(catalogServiceId)) {
+        activateService(catalogServiceId);
+        return true;
+    }
+
+    const ServiceCatalogEntry catalog = ServiceRegistry::entryFor(catalogServiceId);
+    if (catalog.id.isEmpty())
+        return false;
+
+    ServiceEntry entry;
+    entry.catalog = catalog;
+    entry.state = ServiceState::Unloaded;
+    entry.lastUrl = catalog.defaultUrl;
+    m_services.insert(catalogServiceId, std::move(entry));
+
+    emit serviceAdded(catalogServiceId);
+    emit serviceIconChanged(catalogServiceId, iconForService(catalogServiceId));
+
+    activateService(catalogServiceId);
+    return true;
 }
 
 void ServiceManager::activateService(const QString &serviceId)
 {
     ServiceEntry *entry = entryFor(serviceId);
-    if (entry == nullptr || !entry->definition.available)
+    if (entry == nullptr)
         return;
 
-    if (entry->state == ServiceState::Closed || entry->state == ServiceState::Unloaded)
+    if (entry->state == ServiceState::Unloaded)
         createView(*entry);
 
     if (entry->view == nullptr)
@@ -118,10 +206,7 @@ void ServiceManager::unloadService(const QString &serviceId)
     entry->state = ServiceState::Unloaded;
     stopInactivityTimer(*entry);
 
-    if (m_activeServiceId == serviceId) {
-        m_activeServiceId.clear();
-        showPlaceholder();
-    }
+    clearActiveServiceIfNeeded(serviceId);
 
     emit serviceStateChanged(serviceId, ServiceState::Unloaded);
 }
@@ -139,14 +224,11 @@ void ServiceManager::closeService(const QString &serviceId)
         stopInactivityTimer(*entry);
     }
 
-    entry->state = ServiceState::Closed;
+    clearActiveServiceIfNeeded(serviceId);
 
-    if (m_activeServiceId == serviceId) {
-        m_activeServiceId.clear();
-        showPlaceholder();
-    }
-
-    emit serviceStateChanged(serviceId, ServiceState::Closed);
+    m_consoleLog->removeService(serviceId);
+    m_services.remove(serviceId);
+    emit serviceRemoved(serviceId);
 }
 
 ServiceManager::ServiceEntry *ServiceManager::entryFor(const QString &serviceId)
@@ -166,25 +248,43 @@ void ServiceManager::createView(ServiceEntry &entry)
     if (entry.view != nullptr)
         return;
 
-    QWebEngineProfile *profile = ProfileManager::instance().profileFor(entry.definition.id);
+    const QString profileId = entry.catalog.profileId.isEmpty()
+        ? entry.catalog.id
+        : entry.catalog.profileId;
+
+    QWebEngineProfile *profile = ProfileManager::instance().profileFor(profileId);
     if (profile == nullptr)
         return;
 
-    entry.page = new QWebEnginePage(profile, m_stack);
+    const QString serviceId = entry.catalog.id;
+    entry.page = new DiagnosticsWebEnginePage(profile, m_stack);
     entry.view = new QWebEngineView(m_stack);
     entry.view->setPage(entry.page);
 
-    const QString serviceId = entry.definition.id;
     connect(entry.view, &QWebEngineView::urlChanged, this, [this, serviceId](const QUrl &url) {
         ServiceEntry *trackedEntry = entryFor(serviceId);
         if (trackedEntry != nullptr && url.isValid())
             trackedEntry->lastUrl = url;
     });
 
+    connect(entry.view, &QWebEngineView::loadStarted, this, [this, serviceId]() {
+        ServiceEntry *trackedEntry = entryFor(serviceId);
+        if (trackedEntry != nullptr)
+            trackedEntry->documentLoadStatus = QStringLiteral("Loading");
+    });
+
+    connect(entry.view, &QWebEngineView::loadFinished, this, [this, serviceId](bool ok) {
+        ServiceEntry *trackedEntry = entryFor(serviceId);
+        if (trackedEntry != nullptr)
+            trackedEntry->documentLoadStatus = ok ? QStringLiteral("Loaded") : QStringLiteral("Failed");
+    });
+
+    m_consoleLog->bindPage(serviceId, entry.page);
+
     m_stack->addWidget(entry.view);
     m_faviconProvider->bindPage(serviceId, entry.page);
 
-    const QUrl targetUrl = entry.lastUrl.isValid() ? entry.lastUrl : entry.definition.defaultUrl;
+    const QUrl targetUrl = entry.lastUrl.isValid() ? entry.lastUrl : entry.catalog.defaultUrl;
     entry.view->load(targetUrl);
 }
 
@@ -193,7 +293,8 @@ void ServiceManager::destroyView(ServiceEntry &entry)
     if (entry.view == nullptr)
         return;
 
-    m_faviconProvider->unbindPage(entry.definition.id);
+    m_faviconProvider->unbindPage(entry.catalog.id);
+    m_consoleLog->unbindPage(entry.catalog.id);
 
     m_stack->removeWidget(entry.view);
     entry.view->deleteLater();
@@ -202,9 +303,19 @@ void ServiceManager::destroyView(ServiceEntry &entry)
     entry.page = nullptr;
 }
 
-void ServiceManager::showPlaceholder()
+void ServiceManager::showEmptyWorkspace()
 {
-    m_stack->setCurrentWidget(m_placeholder);
+    m_stack->setCurrentWidget(m_emptyWorkspace);
+}
+
+void ServiceManager::clearActiveServiceIfNeeded(const QString &serviceId)
+{
+    if (m_activeServiceId != serviceId)
+        return;
+
+    m_activeServiceId.clear();
+    showEmptyWorkspace();
+    emit activeServiceChanged(QString());
 }
 
 void ServiceManager::updateInactivityTimers()
@@ -224,12 +335,14 @@ void ServiceManager::startInactivityTimer(ServiceEntry &entry)
         entry.inactivityTimer = new QTimer(this);
         entry.inactivityTimer->setSingleShot(true);
         entry.inactivityTimer->setInterval(SettingsManager::instance().autoUnloadTimeoutMs());
-        connect(entry.inactivityTimer, &QTimer::timeout, this, [this, serviceId = entry.definition.id]() {
+        connect(entry.inactivityTimer, &QTimer::timeout, this, [this, serviceId = entry.catalog.id]() {
             if (m_activeServiceId == serviceId)
                 return;
             if (state(serviceId) == ServiceState::Loaded)
                 unloadService(serviceId);
         });
+    } else {
+        entry.inactivityTimer->setInterval(SettingsManager::instance().autoUnloadTimeoutMs());
     }
 
     entry.inactivityTimer->start();
@@ -254,4 +367,87 @@ void ServiceManager::refreshInactivityTimeouts()
         if (entry.inactivityTimer->isActive())
             entry.inactivityTimer->start();
     }
+}
+
+QString ServiceManager::profileRuntimeStateLabel(const QString &catalogServiceId) const
+{
+    const ServiceEntry *entry = entryFor(catalogServiceId);
+    if (entry == nullptr)
+        return QStringLiteral("Unloaded");
+
+    switch (entry->state) {
+    case ServiceState::Loaded:
+        return QStringLiteral("Loaded");
+    case ServiceState::Unloaded:
+        return QStringLiteral("Unloaded");
+    case ServiceState::Closed:
+        return QStringLiteral("Unloaded");
+    }
+
+    return QStringLiteral("Unloaded");
+}
+
+bool ServiceManager::clearServiceProfile(const QString &catalogServiceId, QString *errorMessage)
+{
+    const ServiceCatalogEntry catalog = ServiceRegistry::entryFor(catalogServiceId);
+    if (catalog.id.isEmpty()) {
+        if (errorMessage != nullptr)
+            *errorMessage = QStringLiteral("Unknown service.");
+        return false;
+    }
+
+    const QString profileId = catalog.profileId.isEmpty() ? catalog.id : catalog.profileId;
+
+    if (hasOpenService(catalogServiceId)) {
+        ServiceEntry *entry = entryFor(catalogServiceId);
+        if (entry == nullptr) {
+            if (errorMessage != nullptr)
+                *errorMessage = QStringLiteral("Service entry is unavailable.");
+            return false;
+        }
+
+        if (entry->state == ServiceState::Loaded)
+            unloadService(catalogServiceId);
+
+        if (entry->view != nullptr)
+            destroyView(*entry);
+    }
+
+    ProfileManager::instance().releaseProfile(profileId);
+
+    if (!ProfileManager::instance().clearProfileData(profileId, errorMessage)) {
+        CrashLogger::instance().logOperationalError(
+            QStringLiteral("profile"),
+            QStringLiteral("Failed to clear profile %1 for service %2: %3")
+                .arg(profileId, catalogServiceId, errorMessage != nullptr ? *errorMessage : QString()));
+        return false;
+    }
+
+    m_faviconProvider->clearCacheForService(catalogServiceId);
+    return true;
+}
+
+void ServiceManager::signInToService(const QString &catalogServiceId)
+{
+    if (!ServiceRegistry::isLaunchable(catalogServiceId))
+        return;
+
+    const ServiceCatalogEntry catalog = ServiceRegistry::entryFor(catalogServiceId);
+    if (catalog.id.isEmpty())
+        return;
+
+    if (!hasOpenService(catalogServiceId)) {
+        openService(catalogServiceId);
+        return;
+    }
+
+    ServiceEntry *entry = entryFor(catalogServiceId);
+    if (entry == nullptr)
+        return;
+
+    entry->lastUrl = catalog.defaultUrl;
+    if (entry->view != nullptr)
+        entry->view->load(catalog.defaultUrl);
+
+    activateService(catalogServiceId);
 }

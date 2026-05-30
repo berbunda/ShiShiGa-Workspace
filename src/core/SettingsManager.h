@@ -15,7 +15,6 @@ public:
 
     static constexpr int kDefaultFontSize = 14;
     static constexpr int kDefaultAutoUnloadTimeoutMinutes = 30;
-    static constexpr bool kDefaultRestorePreviousSession = true;
     static constexpr bool kDefaultRememberMainWindowGeometry = true;
 
     static SettingsManager &instance();
@@ -35,9 +34,6 @@ public:
     int autoUnloadTimeoutMinutes() const;
     int autoUnloadTimeoutMs() const;
     void setAutoUnloadTimeoutMinutes(int minutes);
-
-    bool restorePreviousSession() const;
-    void setRestorePreviousSession(bool restore);
 
     QSize mainWindowSize() const;
     void setMainWindowSize(const QSize &size);
@@ -63,7 +59,6 @@ private:
     int m_fontSize = 0;
     int m_sidebarWidth = 0;
     int m_autoUnloadTimeoutMinutes = 0;
-    bool m_restorePreviousSession = false;
 
     QSize m_mainWindowSize;
     QPoint m_mainWindowPosition;

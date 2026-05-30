@@ -21,6 +21,7 @@ public:
 
     void bindPage(const QString &serviceId, QWebEnginePage *page);
     void unbindPage(const QString &serviceId);
+    void clearCacheForService(const QString &serviceId);
 
     QIcon cachedIcon(const QString &serviceId) const;
     bool hasCachedIcon(const QString &serviceId) const;

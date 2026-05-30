@@ -11,10 +11,17 @@ class ServiceButton : public QWidget
 
 public:
     static constexpr int kIconLogicalSize = 40;
+    static constexpr int kIconPadding = 8;
+    static constexpr int kHorizontalMargin = 8;
+    static constexpr int kVerticalMargin = 4;
+    static constexpr int kContentSpacing = 6;
+    static constexpr int kStateButtonSize = 24;
+
+    static QSize iconTouchTargetSize();
+    static QSize rowSizeHint();
 
     explicit ServiceButton(const QString &serviceId,
                            const QString &displayName,
-                           bool available,
                            QWidget *parent = nullptr);
 
     QString serviceId() const;
@@ -34,9 +41,8 @@ private:
 
     QString m_serviceId;
     QString m_displayName;
-    bool m_available = false;
     bool m_active = false;
-    ServiceState m_state = ServiceState::Closed;
+    ServiceState m_state = ServiceState::Unloaded;
     qint64 m_iconCacheKey = 0;
 
     class QToolButton *m_serviceButton = nullptr;

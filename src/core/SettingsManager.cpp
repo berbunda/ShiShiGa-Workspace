@@ -10,7 +10,6 @@ namespace {
 constexpr int kDefaultFontSize = SettingsManager::kDefaultFontSize;
 constexpr int kDefaultSidebarWidth = 88;
 constexpr int kDefaultAutoUnloadTimeoutMinutes = SettingsManager::kDefaultAutoUnloadTimeoutMinutes;
-constexpr bool kDefaultRestorePreviousSession = SettingsManager::kDefaultRestorePreviousSession;
 constexpr int kDefaultMainWindowWidth = 1400;
 constexpr int kDefaultMainWindowHeight = 900;
 constexpr int kUnsetWindowCoordinate = -1;
@@ -25,7 +24,6 @@ constexpr char kGroupWindow[] = "Window";
 constexpr char kKeyFontSize[] = "FontSize";
 constexpr char kKeySidebarWidth[] = "SidebarWidth";
 constexpr char kKeyAutoUnloadTimeoutMinutes[] = "AutoUnloadTimeoutMinutes";
-constexpr char kKeyRestorePreviousSession[] = "RestorePreviousSession";
 constexpr char kKeyMainWindowWidth[] = "MainWindowWidth";
 constexpr char kKeyMainWindowHeight[] = "MainWindowHeight";
 constexpr char kKeyMainWindowX[] = "MainWindowX";
@@ -122,18 +120,6 @@ void SettingsManager::setAutoUnloadTimeoutMinutes(int minutes)
                                             kMaxAutoUnloadTimeoutMinutes);
 }
 
-bool SettingsManager::restorePreviousSession() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_restorePreviousSession;
-}
-
-void SettingsManager::setRestorePreviousSession(bool restore)
-{
-    QMutexLocker locker(&m_mutex);
-    m_restorePreviousSession = restore;
-}
-
 QSize SettingsManager::mainWindowSize() const
 {
     QMutexLocker locker(&m_mutex);
@@ -189,7 +175,6 @@ void SettingsManager::applyDefaults()
     m_fontSize = kDefaultFontSize;
     m_sidebarWidth = kDefaultSidebarWidth;
     m_autoUnloadTimeoutMinutes = kDefaultAutoUnloadTimeoutMinutes;
-    m_restorePreviousSession = kDefaultRestorePreviousSession;
     m_mainWindowSize = QSize(kDefaultMainWindowWidth, kDefaultMainWindowHeight);
     m_mainWindowPosition = QPoint(kUnsetWindowCoordinate, kUnsetWindowCoordinate);
     m_mainWindowMaximized = false;
@@ -209,9 +194,6 @@ void SettingsManager::readFromSettings()
     m_autoUnloadTimeoutMinutes = settings
         .value(QString::fromLatin1(kKeyAutoUnloadTimeoutMinutes), kDefaultAutoUnloadTimeoutMinutes)
         .toInt();
-    m_restorePreviousSession = settings
-        .value(QString::fromLatin1(kKeyRestorePreviousSession), kDefaultRestorePreviousSession)
-        .toBool();
     settings.endGroup();
 
     settings.beginGroup(QString::fromLatin1(kGroupWindow));
@@ -251,7 +233,6 @@ void SettingsManager::writeToSettings()
 
     settings.beginGroup(QString::fromLatin1(kGroupBehavior));
     settings.setValue(QString::fromLatin1(kKeyAutoUnloadTimeoutMinutes), m_autoUnloadTimeoutMinutes);
-    settings.setValue(QString::fromLatin1(kKeyRestorePreviousSession), m_restorePreviousSession);
     settings.endGroup();
 
     settings.beginGroup(QString::fromLatin1(kGroupWindow));
