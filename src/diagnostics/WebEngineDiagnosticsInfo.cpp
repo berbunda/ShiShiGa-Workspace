@@ -35,7 +35,7 @@ WebEngineDiagnosticsSnapshot WebEngineDiagnosticsInfo::collect(const ServiceMana
     QWebEngineView *view = serviceManager->viewFor(serviceId);
     QWebEnginePage *page = serviceManager->pageFor(serviceId);
     if (view == nullptr || page == nullptr) {
-        snapshot.currentUrl = catalog.defaultUrl.isValid() ? catalog.defaultUrl.toString() : na();
+        snapshot.currentUrl = catalog.startUrl.isValid() ? catalog.startUrl.toString() : na();
         snapshot.pageTitle = na();
         snapshot.faviconUrl = na();
         snapshot.userAgent = na();

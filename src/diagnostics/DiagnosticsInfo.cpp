@@ -114,8 +114,8 @@ DebugDiagnosticsSnapshot DiagnosticsInfo::collect(const ServiceManager *serviceM
                         : profile->httpUserAgent();
                 }
             }
-        } else if (catalog.defaultUrl.isValid()) {
-            snapshot.activeService.serviceUrl = catalog.defaultUrl.toString();
+        } else if (catalog.startUrl.isValid()) {
+            snapshot.activeService.serviceUrl = catalog.startUrl.toString();
         } else {
             snapshot.activeService.serviceUrl = na();
         }

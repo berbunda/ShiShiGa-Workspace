@@ -40,7 +40,6 @@ add_executable(ShiShiGa-Workspace WIN32
     src/services/ServiceRegistry.cpp
     src/services/ServiceRegistry.h
     src/services/ServiceState.h
-    src/services/AiService.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
     src/ui/DebugConsoleWindow.cpp

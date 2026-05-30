@@ -185,7 +185,7 @@ bool ProfileManagerWidget::isActionEnabled(const ProfileActionKind kind,
         return false;
 
     if (kind == ProfileActionKind::SignIn)
-        return ServiceRegistry::isLaunchable(profile.serviceId);
+        return ServiceRegistry::isEnabled(profile.serviceId);
 
     return true;
 }

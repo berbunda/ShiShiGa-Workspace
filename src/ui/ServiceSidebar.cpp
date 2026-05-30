@@ -89,7 +89,7 @@ void ServiceSidebar::showAddServiceMenu()
 {
     QMenu menu(this);
 
-    for (const ServiceCatalogEntry &entry : ServiceRegistry::launchableServices()) {
+    for (const ServiceCatalogEntry &entry : ServiceRegistry::enabledServices()) {
         QAction *action = menu.addAction(entry.displayName);
         if (m_serviceManager->hasOpenService(entry.id))
             action->setEnabled(false);

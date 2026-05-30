@@ -147,7 +147,7 @@ QIcon ServiceManager::iconForService(const QString &serviceId) const
 
 bool ServiceManager::openService(const QString &catalogServiceId)
 {
-    if (!ServiceRegistry::isLaunchable(catalogServiceId))
+    if (!ServiceRegistry::isEnabled(catalogServiceId))
         return false;
 
     if (hasOpenService(catalogServiceId)) {
@@ -162,7 +162,7 @@ bool ServiceManager::openService(const QString &catalogServiceId)
     ServiceEntry entry;
     entry.catalog = catalog;
     entry.state = ServiceState::Unloaded;
-    entry.lastUrl = catalog.defaultUrl;
+    entry.lastUrl = catalog.startUrl;
     m_services.insert(catalogServiceId, std::move(entry));
 
     emit serviceAdded(catalogServiceId);
@@ -291,7 +291,7 @@ void ServiceManager::createView(ServiceEntry &entry)
     m_stack->addWidget(entry.view);
     m_faviconProvider->bindPage(serviceId, entry.page);
 
-    const QUrl targetUrl = entry.lastUrl.isValid() ? entry.lastUrl : entry.catalog.defaultUrl;
+    const QUrl targetUrl = entry.lastUrl.isValid() ? entry.lastUrl : entry.catalog.startUrl;
     entry.view->load(targetUrl);
 }
 
@@ -436,7 +436,7 @@ bool ServiceManager::clearServiceProfile(const QString &catalogServiceId, QStrin
 
 void ServiceManager::signInToService(const QString &catalogServiceId)
 {
-    if (!ServiceRegistry::isLaunchable(catalogServiceId))
+    if (!ServiceRegistry::isEnabled(catalogServiceId))
         return;
 
     const ServiceCatalogEntry catalog = ServiceRegistry::entryFor(catalogServiceId);
@@ -452,9 +452,9 @@ void ServiceManager::signInToService(const QString &catalogServiceId)
     if (entry == nullptr)
         return;
 
-    entry->lastUrl = catalog.defaultUrl;
+    entry->lastUrl = catalog.startUrl;
     if (entry->view != nullptr)
-        entry->view->load(catalog.defaultUrl);
+        entry->view->load(catalog.startUrl);
 
     activateService(catalogServiceId);
 }
