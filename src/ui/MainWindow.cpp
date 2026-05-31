@@ -1,7 +1,9 @@
 #include "MainWindow.h"
 
+#include "AboutWindow.h"
 #include "DebugConsoleWindow.h"
 #include "DevConsoleWindow.h"
+#include "LicenseWindow.h"
 #include "ServiceSidebar.h"
 #include "SettingsWindow.h"
 #include "core/ServiceManager.h"
@@ -106,6 +108,12 @@ void MainWindow::setupMenu()
     auto *devConsoleAction = toolsMenu->addAction(tr("Dev Console"));
     connect(debugConsoleAction, &QAction::triggered, this, &MainWindow::openDebugConsole);
     connect(devConsoleAction, &QAction::triggered, this, &MainWindow::openDevConsole);
+
+    auto *helpMenu = menuBar()->addMenu(tr("Help"));
+    auto *aboutAction = helpMenu->addAction(tr("About ShiShiga-Workspace"));
+    auto *licenseAction = helpMenu->addAction(tr("GNU GPL v3 License"));
+    connect(aboutAction, &QAction::triggered, this, &MainWindow::openAbout);
+    connect(licenseAction, &QAction::triggered, this, &MainWindow::openLicense);
 }
 
 void MainWindow::setupUi()
@@ -163,6 +171,34 @@ void MainWindow::openDevConsole()
     }
 
     showConsoleWindow(m_devConsoleWindow, this, QPoint(24, 48));
+}
+
+void MainWindow::openAbout()
+{
+    if (m_aboutWindow == nullptr) {
+        m_aboutWindow = new AboutWindow(this);
+        connect(m_aboutWindow, &QObject::destroyed, this, [this]() {
+            m_aboutWindow = nullptr;
+        });
+    }
+
+    m_aboutWindow->show();
+    m_aboutWindow->raise();
+    m_aboutWindow->activateWindow();
+}
+
+void MainWindow::openLicense()
+{
+    if (m_licenseWindow == nullptr) {
+        m_licenseWindow = new LicenseWindow(this);
+        connect(m_licenseWindow, &QObject::destroyed, this, [this]() {
+            m_licenseWindow = nullptr;
+        });
+    }
+
+    m_licenseWindow->show();
+    m_licenseWindow->raise();
+    m_licenseWindow->activateWindow();
 }
 
 void MainWindow::applyLiveSettings()

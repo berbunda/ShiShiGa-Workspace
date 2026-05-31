@@ -16,31 +16,30 @@ struct ServiceDefinition
     bool enabled;
 };
 
-// Central catalog of AI services. To add a service, append one ServiceDefinition row below
-// and set enabled=true when it should appear in the sidebar "+" menu.
+// Central catalog of AI services. Append a ServiceDefinition row to add a service.
+// profileId nullptr uses entry.id (isolated WebEngine profile per service).
 constexpr ServiceDefinition kServiceDefinitions[] = {
-    // MVP services
     {"chatgpt", "ChatGPT", "https://chatgpt.com", nullptr, nullptr, true},
     {"claude", "Claude", "https://claude.ai/", nullptr, nullptr, true},
-    {"gemini", "Gemini", "https://gemini.google.com/", nullptr, nullptr, true},
+    {"gemini", "Google Gemini", "https://gemini.google.com/", nullptr, nullptr, true},
     {"deepseek", "DeepSeek", "https://chat.deepseek.com/", nullptr, nullptr, true},
 
-    // Future services (enable in registry when ready for the sidebar menu)
-    {"aistudio", "Google AI Studio", "https://aistudio.google.com/", nullptr, nullptr, false},
-    {"labs", "Google Labs", "https://labs.google/", nullptr, nullptr, false},
-    {"notebooklm", "Google NotebookLM", "https://notebooklm.google/", nullptr, nullptr, false},
-    {"grok", "Grok", "https://grok.com/", nullptr, nullptr, false},
-    {"higgsfield", "Higgsfield", "https://higgsfield.ai/", nullptr, nullptr, false},
-    {"euria", "Infomaniak Euria", "https://euria.infomaniak.com/", nullptr, nullptr, false},
-    {"copilot", "Microsoft Copilot", "https://copilot.microsoft.com/", nullptr, nullptr, false},
-    {"minimax", "MiniMax", "https://agent.minimax.io/", nullptr, nullptr, false},
-    {"mistral", "Mistral", "https://chat.mistral.ai/", nullptr, nullptr, false},
-    {"nanobanana", "Nano Banana 2", "https://nanobanana.io/", nullptr, nullptr, false},
-    {"perplexity", "Perplexity", "https://www.perplexity.ai/", nullptr, nullptr, false},
-    {"poe", "Poe", "https://poe.com/", nullptr, nullptr, false},
-    {"qwen", "Qwen Studio", "https://chat.qwen.ai/", nullptr, nullptr, false},
-    {"scira", "Scira AI", "https://scira.ai/", nullptr, nullptr, false},
-    {"zai", "Z.ai", "https://z.ai/chat", nullptr, nullptr, false},
+    {"aistudio", "Google AI Studio", "https://aistudio.google.com/", nullptr, nullptr, true},
+    {"labs", "Google Labs", "https://labs.google/", nullptr, nullptr, true},
+    {"notebooklm", "Google NotebookLM", "https://notebooklm.google/", nullptr, nullptr, true},
+    {"grok", "Grok", "https://grok.com/", nullptr, nullptr, true},
+    {"higgsfield", "Higgsfield", "https://higgsfield.ai/", nullptr, nullptr, true},
+    {"euria", "Infomaniak Euria", "https://euria.infomaniak.com/", nullptr, nullptr, true},
+    {"copilot", "Microsoft Copilot", "https://copilot.microsoft.com/", nullptr, nullptr, true},
+    {"minimax", "MiniMax", "https://agent.minimax.io/", nullptr, nullptr, true},
+    {"mistral", "Mistral", "https://chat.mistral.ai/", nullptr, nullptr, true},
+    {"nanobanana", "Nano Banana 2", "https://nanobanana.io/", nullptr, nullptr, true},
+    {"perplexity", "Perplexity", "https://www.perplexity.ai/", nullptr, nullptr, true},
+    {"poe", "Poe", "https://poe.com/", nullptr, nullptr, true},
+    {"qwen", "Qwen Studio", "https://chat.qwen.ai/", nullptr, nullptr, true},
+    {"scira", "Scira AI", "https://scira.ai/", nullptr, nullptr, true},
+    {"zai", "Z.ai", "https://z.ai/chat", nullptr, nullptr, true},
+    {"characterai", "Character.AI", "https://character.ai/", nullptr, nullptr, true},
 };
 
 ServiceCatalogEntry makeEntry(const ServiceDefinition &definition)

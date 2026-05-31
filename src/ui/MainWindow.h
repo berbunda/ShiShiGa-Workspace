@@ -2,9 +2,11 @@
 
 #include <QMainWindow>
 
+class AboutWindow;
 class QCloseEvent;
 class DebugConsoleWindow;
 class DevConsoleWindow;
+class LicenseWindow;
 class ServiceManager;
 class ServiceSidebar;
 class SettingsManager;
@@ -24,6 +26,8 @@ private slots:
     void openSettings();
     void openDebugConsole();
     void openDevConsole();
+    void openAbout();
+    void openLicense();
     void applyLiveSettings();
 
 private:
@@ -41,4 +45,6 @@ private:
     SettingsWindow *m_settingsWindow = nullptr;
     DebugConsoleWindow *m_debugConsoleWindow = nullptr;
     DevConsoleWindow *m_devConsoleWindow = nullptr;
+    AboutWindow *m_aboutWindow = nullptr;
+    LicenseWindow *m_licenseWindow = nullptr;
 };

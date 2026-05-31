@@ -1,3 +1,4 @@
+#include "core/AppMetadata.h"
 #include "core/SettingsManager.h"
 #include "logging/CrashLogger.h"
 #include "platform/WinEnginePaths.h"
@@ -20,8 +21,9 @@ int main(int argc, char *argv[])
     if (!pluginsDirectory.isEmpty())
         QCoreApplication::addLibraryPath(pluginsDirectory);
 
-    CrashLogger::instance().install(
-        QStringLiteral(SHISHIGA_APP_VERSION));
+    CrashLogger::instance().install(AppMetadata::applicationVersion());
+
+    Q_INIT_RESOURCE(embedded_license);
 
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("ShiShiga Workspace"));

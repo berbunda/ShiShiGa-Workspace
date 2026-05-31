@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(ShiShiGa-Workspace VERSION 0.1.0)
+project(ShiShiGa-Workspace VERSION 0.6.1)
+
+include(cmake/AppVersion.cmake)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,6 +15,10 @@ set_source_files_properties(resources/qt.conf PROPERTIES QT_RESOURCE_ALIAS "qt.c
 
 add_executable(ShiShiGa-Workspace WIN32
     main.cpp
+    src/core/AppMetadata.cpp
+    src/core/AppMetadata.h
+    src/core/LicenseText.cpp
+    src/core/LicenseText.h
     src/core/ServiceFaviconProvider.cpp
     src/core/ServiceFaviconProvider.h
     src/core/ServiceManager.cpp
@@ -40,8 +46,12 @@ add_executable(ShiShiGa-Workspace WIN32
     src/services/ServiceRegistry.cpp
     src/services/ServiceRegistry.h
     src/services/ServiceState.h
+    src/ui/AboutWindow.cpp
+    src/ui/AboutWindow.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
+    src/ui/LicenseWindow.cpp
+    src/ui/LicenseWindow.h
     src/ui/DebugConsoleWindow.cpp
     src/ui/DebugConsoleWindow.h
     src/ui/DevConsoleWindow.cpp
@@ -66,12 +76,29 @@ qt_add_resources(ShiShiGa-Workspace "embedded_qt_conf"
         resources/qt.conf
 )
 
+qt_add_resources(ShiShiGa-Workspace "embedded_license"
+    PREFIX "/"
+    FILES
+        LICENSE
+)
+
+add_custom_command(TARGET ShiShiGa-Workspace POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/LICENSE"
+        "$<TARGET_FILE_DIR:ShiShiGa-Workspace>/LICENSE"
+    COMMENT "Copy LICENSE next to executable for development runs"
+)
+
 target_include_directories(ShiShiGa-Workspace PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_compile_definitions(ShiShiGa-Workspace PRIVATE
-    SHISHIGA_APP_VERSION="${PROJECT_VERSION}"
+    "SHISHIGA_APP_VERSION=\"${PROJECT_VERSION}\""
+    "SHISHIGA_GIT_COMMIT=\"${SHISHIGA_GIT_COMMIT}\""
+    "SHISHIGA_BUILD_DATE=\"${SHISHIGA_BUILD_DATE}\""
+    "SHISHIGA_COMPILER_LABEL=\"${SHISHIGA_COMPILER_LABEL}\""
+    "SHISHIGA_CMAKE_VERSION_LABEL=\"${SHISHIGA_CMAKE_VERSION_LABEL}\""
 )
 
 target_link_libraries(ShiShiGa-Workspace PRIVATE

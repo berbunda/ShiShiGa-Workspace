@@ -139,6 +139,13 @@ if (-not (Test-Path $BuiltExe)) {
 Write-Host "Copying $AppName.exe to portable release..."
 Copy-Item -Path $BuiltExe -Destination (Join-Path $DistDir "$AppName.exe") -Force
 
+$LicenseFile = Join-Path $ProjectRoot "LICENSE"
+if (-not (Test-Path $LicenseFile)) {
+    throw "LICENSE file not found: $LicenseFile"
+}
+Write-Host "Copying LICENSE to portable release..."
+Copy-Item -Path $LicenseFile -Destination (Join-Path $DistDir "LICENSE") -Force
+
 Deploy-QtRuntime -DistDir $DistDir -ExecutableName $ExecutableName -RuntimeDirName $RuntimeDirName -QtRoot $QtRoot -VcVars $VcVars -ProjectRoot $ProjectRoot
 
 Write-Host ""

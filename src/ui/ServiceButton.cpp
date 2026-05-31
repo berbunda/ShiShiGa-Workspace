@@ -124,15 +124,18 @@ void ServiceButton::updateStateButton()
 void ServiceButton::updateStyles()
 {
     QString serviceStyle = QStringLiteral(
-        "QToolButton { border-radius: 10px; padding: 4px; }");
+        "QToolButton {"
+        "  border-radius: 10px;"
+        "  padding: 4px;"
+        "  background: transparent;"
+        "  border: 2px solid transparent;"
+        "}"
+        "QToolButton:hover { background: #333; }");
 
     if (m_active) {
         serviceStyle += QStringLiteral(
-            "QToolButton { background: #2d6cdf; }"
-            "QToolButton:hover { background: #3b79ea; }");
-    } else {
-        serviceStyle += QStringLiteral(
-            "QToolButton:hover { background: #333; }");
+            "QToolButton { border-color: #b0b0b0; }"
+            "QToolButton:hover { background: #333; border-color: #b0b0b0; }");
     }
 
     m_serviceButton->setStyleSheet(serviceStyle);
