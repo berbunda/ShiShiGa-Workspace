@@ -1,15 +1,18 @@
 #include "MainWindow.h"
 
 #include "AboutWindow.h"
+#include "ApplicationTray.h"
 #include "DebugConsoleWindow.h"
 #include "DevConsoleWindow.h"
 #include "LicenseWindow.h"
 #include "ServiceSidebar.h"
 #include "SettingsWindow.h"
+#include "core/AppIcons.h"
 #include "core/ServiceManager.h"
 #include "core/SettingsManager.h"
 #include <QApplication>
 #include <QCloseEvent>
+#include <QShowEvent>
 #include <QHBoxLayout>
 #include <QMenuBar>
 #include <QPoint>
@@ -45,10 +48,41 @@ MainWindow::MainWindow(SettingsManager &settings, QWidget *parent)
     , m_settings(settings)
 {
     setWindowTitle(QStringLiteral("ShiShiga Workspace"));
+    applyWindowIcon();
     setupMenu();
     applyWindowSettings();
     applyApplicationFont();
     setupUi();
+    setupSystemTray();
+}
+
+void MainWindow::applyWindowIcon()
+{
+    const QIcon icon = AppIcons::windowIcon();
+    if (icon.isNull())
+        return;
+
+    setWindowIcon(icon);
+    QApplication::setWindowIcon(icon);
+}
+
+void MainWindow::setupSystemTray()
+{
+    m_applicationTray = new ApplicationTray(*this, m_settings, qApp);
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+
+    if (m_applicationTray != nullptr)
+        m_applicationTray->ensureVisible();
+}
+
+void MainWindow::requestApplicationExit()
+{
+    m_exitingApplication = true;
+    QApplication::quit();
 }
 
 void MainWindow::applyWindowSettings()
@@ -71,7 +105,12 @@ void MainWindow::applyWindowSettings()
 void MainWindow::applyApplicationFont()
 {
     QFont font = QApplication::font();
-    font.setPointSize(m_settings.fontSize());
+
+    int pointSize = m_settings.fontSize();
+    if (pointSize < SettingsManager::kMinFontSize || pointSize > SettingsManager::kMaxFontSize)
+        pointSize = SettingsManager::kDefaultFontSize;
+
+    font.setPointSize(pointSize);
     QApplication::setFont(font);
 }
 
@@ -94,7 +133,22 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     persistWindowSettings();
     m_settings.save();
+
+    const bool minimizeToTray = m_settings.minimizeToTrayOnClose();
+    const bool trayActive = m_applicationTray != nullptr && m_applicationTray->isActive();
+
+    if (!m_exitingApplication && minimizeToTray && trayActive) {
+        m_applicationTray->ensureVisible();
+        hide();
+        m_applicationTray->refreshToggleActionLabel();
+        event->ignore();
+        return;
+    }
+
     QMainWindow::closeEvent(event);
+
+    if (event->isAccepted() && !m_exitingApplication)
+        QApplication::quit();
 }
 
 void MainWindow::setupMenu()

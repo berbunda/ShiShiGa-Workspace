@@ -33,6 +33,7 @@ constexpr char kKeyMainWindowX[] = "MainWindowX";
 constexpr char kKeyMainWindowY[] = "MainWindowY";
 constexpr char kKeyMainWindowMaximized[] = "MainWindowMaximized";
 constexpr char kKeyRememberMainWindowGeometry[] = "RememberMainWindowGeometry";
+constexpr char kKeyMinimizeToTrayOnClose[] = "MinimizeToTrayOnClose";
 constexpr char kKeyUserAgentMode[] = "UserAgentMode";
 constexpr char kKeyUserAgentPreset[] = "UserAgentPreset";
 constexpr char kKeyCustomUserAgent[] = "CustomUserAgent";
@@ -177,6 +178,18 @@ void SettingsManager::setRememberMainWindowGeometry(bool remember)
     m_rememberMainWindowGeometry = remember;
 }
 
+bool SettingsManager::minimizeToTrayOnClose() const
+{
+    QMutexLocker locker(&m_mutex);
+    return m_minimizeToTrayOnClose;
+}
+
+void SettingsManager::setMinimizeToTrayOnClose(bool minimize)
+{
+    QMutexLocker locker(&m_mutex);
+    m_minimizeToTrayOnClose = minimize;
+}
+
 UserAgentMode SettingsManager::userAgentMode() const
 {
     QMutexLocker locker(&m_mutex);
@@ -240,6 +253,7 @@ void SettingsManager::applyDefaults()
     m_mainWindowPosition = QPoint(kUnsetWindowCoordinate, kUnsetWindowCoordinate);
     m_mainWindowMaximized = false;
     m_rememberMainWindowGeometry = SettingsManager::kDefaultRememberMainWindowGeometry;
+    m_minimizeToTrayOnClose = SettingsManager::kDefaultMinimizeToTrayOnClose;
     m_userAgentMode = UserAgentMode::Default;
     m_userAgentPresetId = QString::fromLatin1(UserAgentSettings::kDefaultPresetId);
     m_customUserAgent.clear();
@@ -259,6 +273,10 @@ void SettingsManager::readFromSettings()
     m_autoUnloadTimeoutMinutes = settings
         .value(QString::fromLatin1(kKeyAutoUnloadTimeoutMinutes), kDefaultAutoUnloadTimeoutMinutes)
         .toInt();
+    m_minimizeToTrayOnClose = settings
+        .value(QString::fromLatin1(kKeyMinimizeToTrayOnClose),
+               SettingsManager::kDefaultMinimizeToTrayOnClose)
+        .toBool();
     settings.endGroup();
 
     settings.beginGroup(QString::fromLatin1(kGroupWindow));
@@ -291,8 +309,13 @@ void SettingsManager::readFromSettings()
         .toBool();
     settings.endGroup();
 
-    if (m_fontSize <= 0)
+    if (m_fontSize <= 0) {
         m_fontSize = kDefaultFontSize;
+    } else {
+        m_fontSize = std::clamp(m_fontSize,
+                                SettingsManager::kMinFontSize,
+                                SettingsManager::kMaxFontSize);
+    }
     if (m_sidebarWidth <= 0)
         m_sidebarWidth = kDefaultSidebarWidth;
     if (m_autoUnloadTimeoutMinutes <= 0)
@@ -316,6 +339,7 @@ void SettingsManager::writeToSettings()
 
     settings.beginGroup(QString::fromLatin1(kGroupBehavior));
     settings.setValue(QString::fromLatin1(kKeyAutoUnloadTimeoutMinutes), m_autoUnloadTimeoutMinutes);
+    settings.setValue(QString::fromLatin1(kKeyMinimizeToTrayOnClose), m_minimizeToTrayOnClose);
     settings.endGroup();
 
     settings.beginGroup(QString::fromLatin1(kGroupWindow));

@@ -18,6 +18,7 @@ public:
     static constexpr int kDefaultFontSize = 14;
     static constexpr int kDefaultAutoUnloadTimeoutMinutes = 30;
     static constexpr bool kDefaultRememberMainWindowGeometry = true;
+    static constexpr bool kDefaultMinimizeToTrayOnClose = false;
 
     static SettingsManager &instance();
 
@@ -48,6 +49,9 @@ public:
 
     bool rememberMainWindowGeometry() const;
     void setRememberMainWindowGeometry(bool remember);
+
+    bool minimizeToTrayOnClose() const;
+    void setMinimizeToTrayOnClose(bool minimize);
 
     UserAgentMode userAgentMode() const;
     void setUserAgentMode(UserAgentMode mode);
@@ -80,6 +84,7 @@ private:
     QPoint m_mainWindowPosition;
     bool m_mainWindowMaximized = false;
     bool m_rememberMainWindowGeometry = true;
+    bool m_minimizeToTrayOnClose = false;
 
     UserAgentMode m_userAgentMode = UserAgentMode::Default;
     QString m_userAgentPresetId;

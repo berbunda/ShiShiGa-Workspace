@@ -4,11 +4,13 @@
 
 class AboutWindow;
 class QCloseEvent;
+class QShowEvent;
 class DebugConsoleWindow;
 class DevConsoleWindow;
 class LicenseWindow;
 class ServiceManager;
 class ServiceSidebar;
+class ApplicationTray;
 class SettingsManager;
 class SettingsWindow;
 
@@ -19,7 +21,10 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(SettingsManager &settings, QWidget *parent = nullptr);
 
+    void requestApplicationExit();
+
 protected:
+    void showEvent(QShowEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
 private slots:
@@ -36,8 +41,13 @@ private:
     void setupUi();
     void setupMenu();
     void applyApplicationFont();
+    void applyWindowIcon();
+    void setupSystemTray();
 
     SettingsManager &m_settings;
+
+    ApplicationTray *m_applicationTray = nullptr;
+    bool m_exitingApplication = false;
 
     class QStackedWidget *m_stack = nullptr;
     ServiceManager *m_serviceManager = nullptr;

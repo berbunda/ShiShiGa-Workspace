@@ -1,0 +1,2 @@
+// Application icon embedded in the Windows executable (Explorer, taskbar, Alt+Tab).
+IDI_ICON1 ICON "..\\icons\\ShiShiGa.ico"

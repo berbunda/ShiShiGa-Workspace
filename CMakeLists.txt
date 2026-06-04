@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(ShiShiGa-Workspace VERSION 0.6.1)
+project(ShiShiGa-Workspace VERSION 0.6.2)
 
 include(cmake/AppVersion.cmake)
 
@@ -15,6 +15,8 @@ set_source_files_properties(resources/qt.conf PROPERTIES QT_RESOURCE_ALIAS "qt.c
 
 add_executable(ShiShiGa-Workspace WIN32
     main.cpp
+    src/core/AppIcons.cpp
+    src/core/AppIcons.h
     src/core/AppMetadata.cpp
     src/core/AppMetadata.h
     src/core/LicenseText.cpp
@@ -48,6 +50,8 @@ add_executable(ShiShiGa-Workspace WIN32
     src/services/ServiceState.h
     src/ui/AboutWindow.cpp
     src/ui/AboutWindow.h
+    src/ui/ApplicationTray.cpp
+    src/ui/ApplicationTray.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
     src/ui/LicenseWindow.cpp
@@ -81,6 +85,29 @@ qt_add_resources(ShiShiGa-Workspace "embedded_license"
     FILES
         LICENSE
 )
+
+set(SHISHIGA_ICON_DIR "${CMAKE_SOURCE_DIR}/resources/icons")
+set_source_files_properties("${SHISHIGA_ICON_DIR}/ShiShiGa-128.png"
+    PROPERTIES QT_RESOURCE_ALIAS "ShiShiGa-128.png")
+set_source_files_properties("${SHISHIGA_ICON_DIR}/ShiShiGa-tray-48.png"
+    PROPERTIES QT_RESOURCE_ALIAS "ShiShiGa-tray-48.png")
+set_source_files_properties("${SHISHIGA_ICON_DIR}/ShiShiGa-tray-16.png"
+    PROPERTIES QT_RESOURCE_ALIAS "ShiShiGa-tray-16.png")
+
+qt_add_resources(ShiShiGa-Workspace "embedded_app_icons"
+    PREFIX "/icons"
+    FILES
+        "${SHISHIGA_ICON_DIR}/ShiShiGa-128.png"
+        "${SHISHIGA_ICON_DIR}/ShiShiGa-tray-48.png"
+        "${SHISHIGA_ICON_DIR}/ShiShiGa-tray-16.png"
+)
+
+if(WIN32)
+    set(SHISHIGA_EXE_ICON "${CMAKE_SOURCE_DIR}/resources/icons/ShiShiGa.ico")
+    target_sources(ShiShiGa-Workspace PRIVATE resources/windows/app.rc)
+    set_source_files_properties(resources/windows/app.rc PROPERTIES
+        OBJECT_DEPENDS "${SHISHIGA_EXE_ICON}")
+endif()
 
 add_custom_command(TARGET ShiShiGa-Workspace POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

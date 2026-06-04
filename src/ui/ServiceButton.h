@@ -38,12 +38,16 @@ private:
     void updateStateButton();
     void updateStyles();
     void applyPlaceholderIcon();
+    void refreshIconDisplay();
+
+    static QIcon iconWithUnloadOverlay(const QIcon &source, int logicalSize);
 
     QString m_serviceId;
     QString m_displayName;
     bool m_active = false;
     ServiceState m_state = ServiceState::Unloaded;
     qint64 m_iconCacheKey = 0;
+    QIcon m_sourceIcon;
 
     class QToolButton *m_serviceButton = nullptr;
     class QToolButton *m_stateButton = nullptr;

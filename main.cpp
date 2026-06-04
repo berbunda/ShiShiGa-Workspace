@@ -24,8 +24,10 @@ int main(int argc, char *argv[])
     CrashLogger::instance().install(AppMetadata::applicationVersion());
 
     Q_INIT_RESOURCE(embedded_license);
+    Q_INIT_RESOURCE(embedded_app_icons);
 
     QApplication app(argc, argv);
+    QApplication::setQuitOnLastWindowClosed(false);
     QCoreApplication::setApplicationName(QStringLiteral("ShiShiga Workspace"));
 
     SettingsManager &settings = SettingsManager::instance();

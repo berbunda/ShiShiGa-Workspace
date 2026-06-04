@@ -48,6 +48,7 @@ private:
 
     QSpinBox *m_fontSizeSpin = nullptr;
     QSpinBox *m_autoUnloadTimeoutSpin = nullptr;
+    QCheckBox *m_minimizeToTrayOnCloseCheck = nullptr;
     QCheckBox *m_rememberGeometryCheck = nullptr;
     QDialogButtonBox *m_buttonBox = nullptr;
 };

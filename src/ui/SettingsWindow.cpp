@@ -93,6 +93,9 @@ QWidget *SettingsWindow::buildGeneralTab()
     m_autoUnloadTimeoutSpin->setSuffix(tr(" min"));
     behaviorForm->addRow(tr("Auto unload timeout:"), m_autoUnloadTimeoutSpin);
 
+    m_minimizeToTrayOnCloseCheck = new QCheckBox(tr("Minimize to tray on close"), behaviorGroup);
+    behaviorForm->addRow(m_minimizeToTrayOnCloseCheck);
+
     auto *windowGroup = new QGroupBox(tr("Window"), generalTab);
     auto *windowForm = new QFormLayout(windowGroup);
 
@@ -112,6 +115,7 @@ void SettingsWindow::loadFromManager()
 {
     m_fontSizeSpin->setValue(m_settings.fontSize());
     m_autoUnloadTimeoutSpin->setValue(m_settings.autoUnloadTimeoutMinutes());
+    m_minimizeToTrayOnCloseCheck->setChecked(m_settings.minimizeToTrayOnClose());
     m_rememberGeometryCheck->setChecked(m_settings.rememberMainWindowGeometry());
 
     if (m_userAgentSettings != nullptr)
@@ -122,6 +126,7 @@ void SettingsWindow::loadDefaultValues()
 {
     m_fontSizeSpin->setValue(SettingsManager::kDefaultFontSize);
     m_autoUnloadTimeoutSpin->setValue(SettingsManager::kDefaultAutoUnloadTimeoutMinutes);
+    m_minimizeToTrayOnCloseCheck->setChecked(SettingsManager::kDefaultMinimizeToTrayOnClose);
     m_rememberGeometryCheck->setChecked(SettingsManager::kDefaultRememberMainWindowGeometry);
 
     if (m_userAgentSettings != nullptr)
@@ -166,6 +171,7 @@ bool SettingsWindow::applyToManager()
 
     m_settings.setFontSize(m_fontSizeSpin->value());
     m_settings.setAutoUnloadTimeoutMinutes(m_autoUnloadTimeoutSpin->value());
+    m_settings.setMinimizeToTrayOnClose(m_minimizeToTrayOnCloseCheck->isChecked());
     m_settings.setRememberMainWindowGeometry(m_rememberGeometryCheck->isChecked());
     m_settings.save();
 

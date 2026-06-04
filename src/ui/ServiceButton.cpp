@@ -2,8 +2,16 @@
 
 #include "core/ServiceFaviconProvider.h"
 
+#include <QColor>
 #include <QHBoxLayout>
+#include <QPainter>
 #include <QToolButton>
+
+namespace {
+
+constexpr int kUnloadOverlayAlpha = 140;
+
+} // namespace
 
 QSize ServiceButton::iconTouchTargetSize()
 {
@@ -86,6 +94,7 @@ void ServiceButton::setServiceState(ServiceState state)
     m_state = state;
     updateStateButton();
     updateStyles();
+    refreshIconDisplay();
 }
 
 void ServiceButton::setServiceIcon(const QIcon &icon)
@@ -98,13 +107,51 @@ void ServiceButton::setServiceIcon(const QIcon &icon)
         return;
 
     m_iconCacheKey = cacheKey;
-    m_serviceButton->setIcon(icon);
+    m_sourceIcon = icon;
+    refreshIconDisplay();
 }
 
 void ServiceButton::applyPlaceholderIcon()
 {
     m_iconCacheKey = 0;
-    m_serviceButton->setIcon(ServiceFaviconProvider::placeholderIcon(m_displayName, kIconLogicalSize));
+    m_sourceIcon = ServiceFaviconProvider::placeholderIcon(m_displayName, kIconLogicalSize);
+    refreshIconDisplay();
+}
+
+QIcon ServiceButton::iconWithUnloadOverlay(const QIcon &source, const int logicalSize)
+{
+    const QPixmap base = source.pixmap(QSize(logicalSize, logicalSize));
+    if (base.isNull())
+        return source;
+
+    QPixmap composed(base.size());
+    composed.fill(Qt::transparent);
+
+    QPainter painter(&composed);
+    painter.drawPixmap(0, 0, base);
+    painter.fillRect(composed.rect(), QColor(128, 128, 128, kUnloadOverlayAlpha));
+    painter.end();
+
+    return QIcon(composed);
+}
+
+void ServiceButton::refreshIconDisplay()
+{
+    if (m_sourceIcon.isNull()) {
+        m_serviceButton->setIcon({});
+        return;
+    }
+
+    const QIcon displayIcon = m_state == ServiceState::Unloaded
+        ? iconWithUnloadOverlay(m_sourceIcon, kIconLogicalSize)
+        : m_sourceIcon;
+    m_serviceButton->setIcon(displayIcon);
+
+    if (m_state == ServiceState::Unloaded) {
+        m_serviceButton->setToolTip(tr("%1 (unloaded from memory)").arg(m_displayName));
+    } else {
+        m_serviceButton->setToolTip(m_displayName);
+    }
 }
 
 void ServiceButton::updateStateButton()
